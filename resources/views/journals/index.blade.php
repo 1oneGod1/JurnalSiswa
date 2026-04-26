@@ -14,8 +14,8 @@
                 <a href="{{ route('journals.show', $journal['id']) }}" class="entry-list-item">
                     <div class="row-top">
                         <div>
-                            <span class="badge accent">{{ $groups->get($journal['group_id'])['name'] ?? $journal['group_id'] }} &middot; Pertemuan {{ $journal['meeting_no'] }}</span>
-                            <h2 style="margin: 9px 0 0; font-size: 15px; font-weight: 650;">{{ $journal['progress_today'] }}</h2>
+                            <span class="badge accent">{{ $groups->get($journal['group_id'] ?? null)['name'] ?? ($journal['group_id'] ?? '-') }} &middot; Pertemuan {{ $journal['meeting_no'] ?? '-' }}</span>
+                            <h2 style="margin: 9px 0 0; font-size: 15px; font-weight: 650;">{{ $journal['progress_today'] ?? 'Catatan belum lengkap' }}</h2>
                             <p class="row-subtitle">{{ $journal['journal_date'] ?? '' }}</p>
                         </div>
                         @if ($journal['help_request'] ?? false)

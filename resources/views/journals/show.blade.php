@@ -62,9 +62,12 @@
                     <div class="doc-slider" data-slider>
                         <div class="doc-slider-track" data-slider-track>
                             @foreach ($images as $img)
+                                @php
+                                    $imageUrl = isset($img['id'], $img['path']) ? route('documentations.show', $img['id']) : ($img['url'] ?? '#');
+                                @endphp
                                 <div class="doc-slide">
-                                    <a href="{{ $img['url'] }}" target="_blank">
-                                        <img src="{{ $img['url'] }}" alt="{{ $img['file_name'] }}" loading="lazy">
+                                    <a href="{{ $imageUrl }}" target="_blank">
+                                        <img src="{{ $imageUrl }}" alt="{{ $img['file_name'] ?? 'Dokumentasi' }}" loading="lazy">
                                     </a>
                                 </div>
                             @endforeach
@@ -84,9 +87,12 @@
                 @if ($others->isNotEmpty() || $images->isEmpty())
                     <div class="list-divide">
                         @forelse ($others as $documentation)
-                            <a href="{{ $documentation['url'] }}" target="_blank" class="entry-list-item">
-                                <strong>{{ $documentation['file_name'] }}</strong>
-                                <span class="row-subtitle" style="display: block;">{{ $documentation['file_type'] }}</span>
+                            @php
+                                $documentationUrl = isset($documentation['id'], $documentation['path']) ? route('documentations.show', $documentation['id']) : ($documentation['url'] ?? '#');
+                            @endphp
+                            <a href="{{ $documentationUrl }}" target="_blank" class="entry-list-item">
+                                <strong>{{ $documentation['file_name'] ?? 'Dokumentasi' }}</strong>
+                                <span class="row-subtitle" style="display: block;">{{ $documentation['file_type'] ?? 'file' }}</span>
                             </a>
                         @empty
                             @if ($images->isEmpty())
@@ -105,11 +111,11 @@
                     @forelse ($feedbacks as $feedback)
                         <div class="group-row">
                             <div style="display: flex; justify-content: space-between; gap: 10px;">
-                                <span class="badge violet">{{ $feedback['feedback_type'] }}</span>
-                                <span class="badge warn">{{ $feedback['priority'] }}</span>
+                                <span class="badge violet">{{ $feedback['feedback_type'] ?? 'Feedback' }}</span>
+                                <span class="badge warn">{{ $feedback['priority'] ?? 'sedang' }}</span>
                             </div>
-                            <p style="margin: 12px 0 0; color: var(--ink-2);">{{ $feedback['comment'] }}</p>
-                            <p class="row-subtitle">Status revisi: {{ $feedback['revision_status'] }}</p>
+                            <p style="margin: 12px 0 0; color: var(--ink-2);">{{ $feedback['comment'] ?? 'Komentar belum tersedia' }}</p>
+                            <p class="row-subtitle">Status revisi: {{ $feedback['revision_status'] ?? 'baru' }}</p>
                         </div>
                     @empty
                         <p style="padding: 18px; color: var(--muted);">Belum ada feedback.</p>

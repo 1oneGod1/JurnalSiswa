@@ -82,7 +82,7 @@
 
                         @if ($summary['latest_journal'])
                             <a href="{{ route('journals.show', $summary['latest_journal']['id']) }}" class="soft-link">
-                                Jurnal terakhir: {{ $summary['latest_journal']['progress_today'] }}
+                                Jurnal terakhir: {{ $summary['latest_journal']['progress_today'] ?? 'Catatan belum lengkap' }}
                             </a>
                         @endif
                     </div>
@@ -100,8 +100,11 @@
                 <div class="list-divide">
                     @forelse ($targets as $target)
                         <div style="padding: 14px 16px;">
-                            <span class="badge accent">Pertemuan {{ $target['meeting_no'] ?? '-' }}</span>
-                            <p style="margin: 8px 0 0; font-weight: 650;">{{ $target['title'] }}</p>
+                            <span class="badge accent">
+                                {{ ($target['mode'] ?? 'pertemuan') === 'mingguan' ? 'Minggu' : 'Pertemuan' }}
+                                {{ ($target['mode'] ?? 'pertemuan') === 'mingguan' ? ($target['week_no'] ?? '-') : ($target['meeting_no'] ?? '-') }}
+                            </span>
+                            <p style="margin: 8px 0 0; font-weight: 650;">{{ $target['title'] ?? 'Target belum berjudul' }}</p>
                         </div>
                     @empty
                         <p style="padding: 16px; color: var(--muted);">Belum ada target aktif.</p>
@@ -116,8 +119,8 @@
                 <div class="list-divide">
                     @forelse ($helpRequests as $journal)
                         <a href="{{ route('journals.show', $journal['id']) }}" style="display: block; padding: 14px 16px; text-decoration: none;">
-                            <span class="badge warn">Pertemuan {{ $journal['meeting_no'] }}</span>
-                            <p style="margin: 8px 0 0; color: var(--ink-2); font-size: 13px;">{{ $journal['problem'] ?: $journal['progress_today'] }}</p>
+                            <span class="badge warn">Pertemuan {{ $journal['meeting_no'] ?? '-' }}</span>
+                            <p style="margin: 8px 0 0; color: var(--ink-2); font-size: 13px;">{{ ($journal['problem'] ?? null) ?: ($journal['progress_today'] ?? 'Catatan belum lengkap') }}</p>
                         </a>
                     @empty
                         <p style="padding: 16px; color: var(--muted);">Tidak ada help request.</p>

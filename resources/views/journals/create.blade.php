@@ -16,7 +16,7 @@
                     <select class="input" id="group_id" name="group_id" required>
                         <option value="">Pilih kelompok</option>
                         @foreach ($groups as $group)
-                            <option value="{{ $group['id'] }}" @selected(old('group_id') === $group['id'])>{{ $group['name'] }}</option>
+                            <option value="{{ $group['id'] }}" @selected(old('group_id') === $group['id'])>{{ $group['name'] ?? $group['id'] }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -38,7 +38,11 @@
                     <label class="check-card">
                         <input type="checkbox" name="target_checklist[{{ $target['id'] }}]" value="1" @checked(old("target_checklist.{$target['id']}")) style="margin-top: 2px;">
                         <span>
-                            <strong>Pertemuan {{ $target['meeting_no'] }} &middot; {{ $target['title'] }}</strong>
+                            <strong>
+                                {{ ($target['mode'] ?? 'pertemuan') === 'mingguan' ? 'Minggu' : 'Pertemuan' }}
+                                {{ ($target['mode'] ?? 'pertemuan') === 'mingguan' ? ($target['week_no'] ?? '-') : ($target['meeting_no'] ?? '-') }}
+                                &middot; {{ $target['title'] ?? 'Target belum berjudul' }}
+                            </strong>
                             @if (! empty($target['description']))
                                 <span class="muted" style="display: block; margin-top: 2px;">{{ $target['description'] }}</span>
                             @endif

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DocumentationController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\GroupController;
 use App\Http\Controllers\JournalController;
@@ -36,6 +37,9 @@ Route::middleware('auth')->group(function (): void {
 
     Route::resource('journals', JournalController::class)
         ->only(['index', 'create', 'store', 'show']);
+
+    Route::get('documentations/{documentation}', [DocumentationController::class, 'show'])
+        ->name('documentations.show');
 
     Route::resource('feedback', FeedbackController::class)
         ->only(['index', 'store']);

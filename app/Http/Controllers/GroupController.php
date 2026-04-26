@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Throwable;
 
 class GroupController extends Controller
 {
@@ -40,10 +41,16 @@ class GroupController extends Controller
         ]);
 
         $id = 'kelompok-'.$data['number'];
-        $firebase->set('groups', $id, [
-            'number' => (int) $data['number'],
-            'name' => $data['name'],
-        ]);
+        try {
+            $firebase->set('groups', $id, [
+                'number' => (int) $data['number'],
+                'name' => $data['name'],
+            ]);
+        } catch (Throwable $e) {
+            return back()
+                ->withInput()
+                ->withErrors(['name' => 'Gagal menyimpan kelompok: '.$e->getMessage()]);
+        }
 
         return redirect()->route('groups.index')->with('status', 'Kelompok dibuat.');
     }
@@ -52,7 +59,11 @@ class GroupController extends Controller
     {
         abort_unless(auth()->user()?->isTeacher(), 403);
 
-        $firebase->delete('groups', $id);
+        try {
+            $firebase->delete('groups', $id);
+        } catch (Throwable $e) {
+            return back()->withErrors(['group' => 'Gagal menghapus kelompok: '.$e->getMessage()]);
+        }
 
         return redirect()->route('groups.index')->with('status', 'Kelompok dihapus.');
     }

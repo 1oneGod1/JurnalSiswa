@@ -6,6 +6,7 @@ use App\Services\FirebaseService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Throwable;
 
 class FeedbackController extends Controller
 {
@@ -40,11 +41,17 @@ class FeedbackController extends Controller
         $journal = $firebase->find('journals', $validated['journal_id']);
         abort_if(! $journal, 404);
 
-        $firebase->push('feedbacks', [
-            ...$validated,
-            'group_id' => $journal['group_id'],
-            'created_by' => (string) $request->user()->id,
-        ]);
+        try {
+            $firebase->push('feedbacks', [
+                ...$validated,
+                'group_id' => $journal['group_id'],
+                'created_by' => (string) $request->user()->id,
+            ]);
+        } catch (Throwable $e) {
+            return back()
+                ->withInput()
+                ->withErrors(['comment' => 'Gagal menyimpan feedback: '.$e->getMessage()]);
+        }
 
         return back()->with('status', 'Feedback guru berhasil ditambahkan.');
     }

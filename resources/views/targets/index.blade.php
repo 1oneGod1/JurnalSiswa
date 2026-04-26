@@ -83,7 +83,7 @@
                                         <span class="badge" style="margin-left: 6px;">{{ \Carbon\Carbon::parse($target['target_date'])->format('d M Y') }}</span>
                                     @endif
                                 @endif
-                                <h3 style="margin: 10px 0 0; font-size: 18px; font-weight: 650;">{{ $target['title'] }}</h3>
+                                <h3 style="margin: 10px 0 0; font-size: 18px; font-weight: 650;">{{ $target['title'] ?? 'Target belum berjudul' }}</h3>
                                 @if (! empty($target['description']))
                                     <p class="page-subtitle">{{ $target['description'] }}</p>
                                 @endif

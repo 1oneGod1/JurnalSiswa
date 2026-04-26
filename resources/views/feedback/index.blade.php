@@ -10,19 +10,21 @@
     <section class="card">
         <div class="list-divide">
             @forelse ($feedbacks as $feedback)
-                @php($journal = $journals->get($feedback['journal_id']))
-                <a href="{{ $journal ? route('journals.show', $feedback['journal_id']) : '#' }}" class="entry-list-item">
+                @php
+                    $journal = $journals->get($feedback['journal_id'] ?? null);
+                @endphp
+                <a href="{{ $journal && isset($feedback['journal_id']) ? route('journals.show', $feedback['journal_id']) : '#' }}" class="entry-list-item">
                     <div class="row-top">
                         <div>
-                            <span class="badge violet">{{ $groups->get($feedback['group_id'])['name'] ?? $feedback['group_id'] }} &middot; {{ $feedback['feedback_type'] }}</span>
-                            <p style="margin: 10px 0 0; color: var(--ink-2);">{{ $feedback['comment'] }}</p>
+                            <span class="badge violet">{{ $groups->get($feedback['group_id'] ?? null)['name'] ?? ($feedback['group_id'] ?? '-') }} &middot; {{ $feedback['feedback_type'] ?? 'Feedback' }}</span>
+                            <p style="margin: 10px 0 0; color: var(--ink-2);">{{ $feedback['comment'] ?? 'Komentar belum tersedia' }}</p>
                             @if ($journal)
-                                <p class="row-subtitle">Jurnal pertemuan {{ $journal['meeting_no'] }} &middot; {{ $journal['journal_date'] }}</p>
+                                <p class="row-subtitle">Jurnal pertemuan {{ $journal['meeting_no'] ?? '-' }} &middot; {{ $journal['journal_date'] ?? '-' }}</p>
                             @endif
                         </div>
                         <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                            <span class="badge warn">{{ $feedback['priority'] }}</span>
-                            <span class="badge">{{ $feedback['revision_status'] }}</span>
+                            <span class="badge warn">{{ $feedback['priority'] ?? 'sedang' }}</span>
+                            <span class="badge">{{ $feedback['revision_status'] ?? 'baru' }}</span>
                         </div>
                     </div>
                 </a>

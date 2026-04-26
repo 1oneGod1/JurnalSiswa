@@ -6,6 +6,7 @@ use App\Services\FirebaseService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Throwable;
 
 class TargetController extends Controller
 {
@@ -40,19 +41,25 @@ class TargetController extends Controller
             ->values()
             ->all();
 
-        $firebase->push('targets', [
-            'title' => $validated['title'],
-            'mode' => $validated['mode'],
-            'meeting_no' => $validated['mode'] === 'pertemuan' ? (int) ($validated['meeting_no'] ?? 1) : null,
-            'week_no' => $validated['mode'] === 'mingguan' ? (int) ($validated['week_no'] ?? 1) : null,
-            'target_date' => $validated['target_date'] ?? null,
-            'week_start' => $validated['mode'] === 'mingguan' ? ($validated['week_start'] ?? null) : null,
-            'week_end' => $validated['mode'] === 'mingguan' ? ($validated['week_end'] ?? null) : null,
-            'description' => $validated['description'] ?? null,
-            'checklist_items' => $items,
-            'status' => 'active',
-            'created_by' => (string) $request->user()->id,
-        ]);
+        try {
+            $firebase->push('targets', [
+                'title' => $validated['title'],
+                'mode' => $validated['mode'],
+                'meeting_no' => $validated['mode'] === 'pertemuan' ? (int) ($validated['meeting_no'] ?? 1) : null,
+                'week_no' => $validated['mode'] === 'mingguan' ? (int) ($validated['week_no'] ?? 1) : null,
+                'target_date' => $validated['target_date'] ?? null,
+                'week_start' => $validated['mode'] === 'mingguan' ? ($validated['week_start'] ?? null) : null,
+                'week_end' => $validated['mode'] === 'mingguan' ? ($validated['week_end'] ?? null) : null,
+                'description' => $validated['description'] ?? null,
+                'checklist_items' => $items,
+                'status' => 'active',
+                'created_by' => (string) $request->user()->id,
+            ]);
+        } catch (Throwable $e) {
+            return back()
+                ->withInput()
+                ->withErrors(['title' => 'Gagal menyimpan target: '.$e->getMessage()]);
+        }
 
         return redirect()
             ->route('targets.index')
@@ -63,7 +70,11 @@ class TargetController extends Controller
     {
         abort_unless(auth()->user()->isTeacher(), 403);
 
-        $firebase->update('targets', $target, ['status' => 'archived']);
+        try {
+            $firebase->update('targets', $target, ['status' => 'archived']);
+        } catch (Throwable $e) {
+            return back()->withErrors(['target' => 'Gagal mengarsipkan target: '.$e->getMessage()]);
+        }
 
         return back()->with('status', 'Target diarsipkan.');
     }
