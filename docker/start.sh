@@ -34,6 +34,14 @@ if [ "${DB_CONNECTION:-sqlite}" = "sqlite" ]; then
 fi
 
 php artisan migrate --force
+
+# Seed database hanya jika belum ada user (first deploy)
+USER_COUNT=$(php artisan tinker --execute="echo \App\Models\User::count();" 2>/dev/null | tail -n 1 | tr -d '[:space:]')
+if [ "$USER_COUNT" = "0" ]; then
+    echo "Database kosong, jalankan seeder..."
+    php artisan db:seed --force || true
+fi
+
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
