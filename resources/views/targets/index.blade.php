@@ -17,14 +17,37 @@
                         <label for="title">Judul target</label>
                         <input class="input" id="title" name="title" value="{{ old('title') }}" required>
                     </div>
-                    <div class="grid-2">
+                    <div class="field">
+                        <label for="mode">Tipe target</label>
+                        <select class="input" id="mode" name="mode" required onchange="toggleTargetMode(this.value)">
+                            <option value="pertemuan" {{ old('mode', 'pertemuan') === 'pertemuan' ? 'selected' : '' }}>Per Pertemuan</option>
+                            <option value="mingguan" {{ old('mode') === 'mingguan' ? 'selected' : '' }}>Mingguan</option>
+                        </select>
+                    </div>
+                    <div class="grid-2" id="mode-pertemuan" style="{{ old('mode', 'pertemuan') === 'mingguan' ? 'display:none;' : '' }}">
                         <div class="field">
                             <label for="meeting_no">Pertemuan ke</label>
-                            <input class="input" id="meeting_no" name="meeting_no" type="number" min="1" value="{{ old('meeting_no', 1) }}" required>
+                            <input class="input" id="meeting_no" name="meeting_no" type="number" min="1" value="{{ old('meeting_no', 1) }}">
                         </div>
                         <div class="field">
                             <label for="target_date">Tanggal target</label>
                             <input class="input" id="target_date" name="target_date" type="date" value="{{ old('target_date') }}">
+                        </div>
+                    </div>
+                    <div id="mode-mingguan" style="{{ old('mode') === 'mingguan' ? '' : 'display:none;' }}">
+                        <div class="field">
+                            <label for="week_no">Minggu ke</label>
+                            <input class="input" id="week_no" name="week_no" type="number" min="1" max="52" value="{{ old('week_no', 1) }}">
+                        </div>
+                        <div class="grid-2">
+                            <div class="field">
+                                <label for="week_start">Mulai</label>
+                                <input class="input" id="week_start" name="week_start" type="date" value="{{ old('week_start') }}">
+                            </div>
+                            <div class="field">
+                                <label for="week_end">Selesai</label>
+                                <input class="input" id="week_end" name="week_end" type="date" value="{{ old('week_end') }}">
+                            </div>
                         </div>
                     </div>
                     <div class="field">
@@ -49,7 +72,17 @@
                     <article class="group-row">
                         <div class="row-top">
                             <div>
-                                <span class="badge accent">Pertemuan {{ $target['meeting_no'] ?? '-' }}</span>
+                                @if (($target['mode'] ?? 'pertemuan') === 'mingguan')
+                                    <span class="badge accent">Minggu {{ $target['week_no'] ?? '-' }}</span>
+                                    @if (! empty($target['week_start']) && ! empty($target['week_end']))
+                                        <span class="badge" style="margin-left: 6px;">{{ \Carbon\Carbon::parse($target['week_start'])->format('d M') }} – {{ \Carbon\Carbon::parse($target['week_end'])->format('d M Y') }}</span>
+                                    @endif
+                                @else
+                                    <span class="badge accent">Pertemuan {{ $target['meeting_no'] ?? '-' }}</span>
+                                    @if (! empty($target['target_date']))
+                                        <span class="badge" style="margin-left: 6px;">{{ \Carbon\Carbon::parse($target['target_date'])->format('d M Y') }}</span>
+                                    @endif
+                                @endif
                                 <h3 style="margin: 10px 0 0; font-size: 18px; font-weight: 650;">{{ $target['title'] }}</h3>
                                 @if (! empty($target['description']))
                                     <p class="page-subtitle">{{ $target['description'] }}</p>
@@ -83,4 +116,11 @@
             </div>
         </section>
     </div>
+
+    <script>
+        function toggleTargetMode(mode) {
+            document.getElementById('mode-pertemuan').style.display = mode === 'pertemuan' ? '' : 'none';
+            document.getElementById('mode-mingguan').style.display = mode === 'mingguan' ? '' : 'none';
+        }
+    </script>
 </x-layouts.app>

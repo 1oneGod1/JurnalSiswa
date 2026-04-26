@@ -53,16 +53,48 @@
                 <div class="card-head">
                     <h2 class="card-title">Dokumentasi</h2>
                 </div>
-                <div class="list-divide">
-                    @forelse ($documentations as $documentation)
-                        <a href="{{ $documentation['url'] }}" target="_blank" class="entry-list-item">
-                            <strong>{{ $documentation['file_name'] }}</strong>
-                            <span class="row-subtitle" style="display: block;">{{ $documentation['file_type'] }} &middot; {{ $documentation['storage_disk'] }}</span>
-                        </a>
-                    @empty
-                        <p style="padding: 18px; color: var(--muted);">Belum ada dokumentasi.</p>
-                    @endforelse
-                </div>
+                @php
+                    $images = $documentations->where('file_type', 'foto')->values();
+                    $others = $documentations->where('file_type', '!=', 'foto')->values();
+                @endphp
+
+                @if ($images->isNotEmpty())
+                    <div class="doc-slider" data-slider>
+                        <div class="doc-slider-track" data-slider-track>
+                            @foreach ($images as $img)
+                                <div class="doc-slide">
+                                    <a href="{{ $img['url'] }}" target="_blank">
+                                        <img src="{{ $img['url'] }}" alt="{{ $img['file_name'] }}" loading="lazy">
+                                    </a>
+                                </div>
+                            @endforeach
+                        </div>
+                        @if ($images->count() > 1)
+                            <button type="button" class="doc-slider-btn prev" data-slider-prev aria-label="Sebelumnya">‹</button>
+                            <button type="button" class="doc-slider-btn next" data-slider-next aria-label="Selanjutnya">›</button>
+                            <div class="doc-slider-dots" data-slider-dots>
+                                @foreach ($images as $i => $img)
+                                    <button type="button" data-slider-dot="{{ $i }}" class="{{ $i === 0 ? 'active' : '' }}"></button>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+                @endif
+
+                @if ($others->isNotEmpty() || $images->isEmpty())
+                    <div class="list-divide">
+                        @forelse ($others as $documentation)
+                            <a href="{{ $documentation['url'] }}" target="_blank" class="entry-list-item">
+                                <strong>{{ $documentation['file_name'] }}</strong>
+                                <span class="row-subtitle" style="display: block;">{{ $documentation['file_type'] }}</span>
+                            </a>
+                        @empty
+                            @if ($images->isEmpty())
+                                <p style="padding: 18px; color: var(--muted);">Belum ada dokumentasi.</p>
+                            @endif
+                        @endforelse
+                    </div>
+                @endif
             </section>
 
             <section class="card">
@@ -116,4 +148,23 @@
             </section>
         </aside>
     </div>
+
+    <script>
+        document.querySelectorAll('[data-slider]').forEach((slider) => {
+            const track = slider.querySelector('[data-slider-track]');
+            const slides = track.children;
+            const dots = slider.querySelectorAll('[data-slider-dot]');
+            let index = 0;
+
+            const goTo = (i) => {
+                index = (i + slides.length) % slides.length;
+                track.style.transform = `translateX(-${index * 100}%)`;
+                dots.forEach((d, di) => d.classList.toggle('active', di === index));
+            };
+
+            slider.querySelector('[data-slider-prev]')?.addEventListener('click', () => goTo(index - 1));
+            slider.querySelector('[data-slider-next]')?.addEventListener('click', () => goTo(index + 1));
+            dots.forEach((d, i) => d.addEventListener('click', () => goTo(i)));
+        });
+    </script>
 </x-layouts.app>

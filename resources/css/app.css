@@ -106,15 +106,21 @@ a {
 }
 
 .brand-mark {
-    width: 30px;
-    height: 30px;
+    width: 36px;
+    height: 36px;
     border-radius: 8px;
-    background: linear-gradient(135deg, #1a1a17 0%, #3f3f3a 100%);
+    background: #fff center/contain no-repeat;
     color: #fff;
     display: grid;
     place-items: center;
     font-weight: 700;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12);
+    overflow: hidden;
+}
+
+.brand-mark img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
 }
 
 .brand-name {
@@ -800,4 +806,78 @@ a {
         padding-left: 20px;
         padding-right: 20px;
     }
+}
+
+.doc-slider {
+    position: relative;
+    overflow: hidden;
+    background: #0a0a08;
+    border-radius: 0;
+}
+
+.doc-slider-track {
+    display: flex;
+    transition: transform .35s ease;
+}
+
+.doc-slide {
+    flex: 0 0 100%;
+    aspect-ratio: 4 / 3;
+    background: #0a0a08;
+}
+
+.doc-slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.doc-slider-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, .55);
+    color: #fff;
+    border: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 22px;
+    line-height: 1;
+    display: grid;
+    place-items: center;
+    transition: background .15s;
+}
+
+.doc-slider-btn:hover {
+    background: rgba(0, 0, 0, .8);
+}
+
+.doc-slider-btn.prev { left: 10px; }
+.doc-slider-btn.next { right: 10px; }
+
+.doc-slider-dots {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+}
+
+.doc-slider-dots button {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .45);
+    border: 0;
+    cursor: pointer;
+    padding: 0;
+    transition: background .15s;
+}
+
+.doc-slider-dots button.active {
+    background: #fff;
 }

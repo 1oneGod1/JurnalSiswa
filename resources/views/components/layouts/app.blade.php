@@ -30,10 +30,10 @@
         <div class="app-shell">
             <aside class="sidebar">
                 <a class="sidebar-brand" href="{{ route('dashboard') }}">
-                    <div class="brand-mark">J</div>
+                    <div class="brand-mark"><img src="https://static.wixstatic.com/media/07639e_83549958900b44ad9fea05d99e380dd5~mv2.png/v1/fill/w_559,h_512,al_c/07639e_83549958900b44ad9fea05d99e380dd5~mv2.png" alt="Logo"></div>
                     <div>
                         <div class="brand-name">Jurnal</div>
-                        <div class="brand-sub">STEM &middot; SMAN 8</div>
+                        <div class="brand-sub">STEM &middot; Sekolah Palembang Harapan</div>
                     </div>
                 </a>
                 <nav class="sidebar-nav">

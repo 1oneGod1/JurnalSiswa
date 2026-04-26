@@ -2,10 +2,10 @@
     <div class="login-shell">
         <div class="login-nav">
             <a href="{{ route('login') }}" class="sidebar-brand" style="padding: 0; text-decoration: none; color: inherit;">
-                <div class="brand-mark">J</div>
+                <div class="brand-mark"><img src="https://static.wixstatic.com/media/07639e_83549958900b44ad9fea05d99e380dd5~mv2.png/v1/fill/w_559,h_512,al_c/07639e_83549958900b44ad9fea05d99e380dd5~mv2.png" alt="Logo"></div>
                 <div>
                     <div class="brand-name">Jurnal</div>
-                    <div class="brand-sub">STEM &middot; SMAN 8</div>
+                    <div class="brand-sub">STEM &middot; Sekolah Palembang Harapan</div>
                 </div>
             </a>
             <a href="{{ route('login') }}" class="badge" style="text-decoration: none;">
@@ -48,7 +48,7 @@
             </div>
 
             <div style="margin-top: 40px; text-align: center; color: var(--muted); font-size: 13px;">
-                &copy; 2026 Jurnal &middot; SMAN 8
+                &copy; 2026 Jurnal &middot; Sekolah Palembang Harapan
             </div>
         </div>
     </div>

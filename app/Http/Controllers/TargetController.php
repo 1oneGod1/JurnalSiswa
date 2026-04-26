@@ -24,8 +24,12 @@ class TargetController extends Controller
 
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:120'],
-            'meeting_no' => ['required', 'integer', 'min:1', 'max:99'],
+            'mode' => ['required', 'in:pertemuan,mingguan'],
+            'meeting_no' => ['nullable', 'integer', 'min:1', 'max:99'],
+            'week_no' => ['nullable', 'integer', 'min:1', 'max:52'],
             'target_date' => ['nullable', 'date'],
+            'week_start' => ['nullable', 'date'],
+            'week_end' => ['nullable', 'date', 'after_or_equal:week_start'],
             'description' => ['nullable', 'string', 'max:1000'],
             'checklist_items' => ['nullable', 'string', 'max:2000'],
         ]);
@@ -38,8 +42,12 @@ class TargetController extends Controller
 
         $firebase->push('targets', [
             'title' => $validated['title'],
-            'meeting_no' => (int) $validated['meeting_no'],
+            'mode' => $validated['mode'],
+            'meeting_no' => $validated['mode'] === 'pertemuan' ? (int) ($validated['meeting_no'] ?? 1) : null,
+            'week_no' => $validated['mode'] === 'mingguan' ? (int) ($validated['week_no'] ?? 1) : null,
             'target_date' => $validated['target_date'] ?? null,
+            'week_start' => $validated['mode'] === 'mingguan' ? ($validated['week_start'] ?? null) : null,
+            'week_end' => $validated['mode'] === 'mingguan' ? ($validated['week_end'] ?? null) : null,
             'description' => $validated['description'] ?? null,
             'checklist_items' => $items,
             'status' => 'active',
