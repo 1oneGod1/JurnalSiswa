@@ -31,7 +31,7 @@
                 <h2 class="card-title">Checklist target</h2>
                 <div class="form-grid" style="gap: 8px; margin-top: 12px;">
                     @forelse (($journal['target_checklist'] ?? []) as $targetId => $checked)
-                        @php($target = $targets->get($targetId))
+                        @php $target = $targets->get($targetId); @endphp
                         <div class="check-card">
                             <span class="check-box {{ $checked ? 'done' : '' }}">{!! $checked ? '&#10003;' : '' !!}</span>
                             <span>
