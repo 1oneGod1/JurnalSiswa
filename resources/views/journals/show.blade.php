@@ -3,8 +3,8 @@
         <article class="card form-card">
             <div class="row-top">
                 <div>
-                    <span class="badge accent">{{ $group['name'] ?? $journal['group_id'] }} &middot; Pertemuan {{ $journal['meeting_no'] }}</span>
-                    <h1 class="page-title serif" style="margin-top: 10px;">Jurnal {{ $journal['journal_date'] }}</h1>
+                    <span class="badge accent">{{ ($group['name'] ?? null) ?: ($journal['group_id'] ?? '-') }} &middot; Pertemuan {{ $journal['meeting_no'] ?? '-' }}</span>
+                    <h1 class="page-title serif" style="margin-top: 10px;">Jurnal {{ $journal['journal_date'] ?? '-' }}</h1>
                 </div>
                 @if ($journal['help_request'] ?? false)
                     <span class="badge err">Butuh bantuan</span>
@@ -35,8 +35,8 @@
                         <div class="check-card">
                             <span class="check-box {{ $checked ? 'done' : '' }}">{!! $checked ? '&#10003;' : '' !!}</span>
                             <span>
-                                <strong>{{ $target['title'] ?? $targetId }}</strong>
-                                @if (! empty($target['description']))
+                                <strong>{{ is_array($target) ? ($target['title'] ?? $targetId) : $targetId }}</strong>
+                                @if (is_array($target) && ! empty($target['description']))
                                     <span class="muted" style="display: block; margin-top: 2px;">{{ $target['description'] }}</span>
                                 @endif
                             </span>
