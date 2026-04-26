@@ -36,7 +36,7 @@ Route::middleware('auth')->group(function (): void {
         ->only(['index', 'store', 'destroy']);
 
     Route::resource('journals', JournalController::class)
-        ->only(['index', 'create', 'store', 'show']);
+        ->only(['index', 'create', 'store', 'show', 'edit', 'update']);
 
     Route::get('documentations/{documentation}', [DocumentationController::class, 'show'])
         ->name('documentations.show');

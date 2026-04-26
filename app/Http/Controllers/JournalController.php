@@ -40,44 +40,15 @@ class JournalController extends Controller
     {
         $user = $request->user();
 
-        $validated = $request->validate([
-            'group_id' => [$user->isTeacher() ? 'required' : 'nullable', 'string', 'max:80'],
-            'meeting_no' => ['required', 'integer', 'min:1', 'max:99'],
-            'journal_date' => ['required', 'date'],
-            'target_checklist' => ['array'],
-            'target_checklist.*' => ['string'],
-            'target_vs_realization' => ['nullable', 'string', 'max:1200'],
-            'progress_today' => ['required', 'string', 'max:2000'],
-            'data_result' => ['nullable', 'string', 'max:2000'],
-            'problem' => ['nullable', 'string', 'max:1600'],
-            'solution_next_step' => ['nullable', 'string', 'max:1600'],
-            'insight' => ['nullable', 'string', 'max:1600'],
-            'help_request' => ['nullable', 'boolean'],
-            'documentations' => ['nullable', 'array', 'max:6'],
-            'documentations.*' => ['file', 'mimes:jpg,jpeg,png,webp,mp4,mov,pdf,txt', 'max:20480'],
-        ]);
+        $validated = $request->validate($this->journalRules($user->isTeacher()));
 
         $groupId = $user->isTeacher() ? $validated['group_id'] : $user->group_id;
         abort_if(blank($groupId), 422, 'Akun siswa belum tersambung ke kelompok.');
 
-        $checklist = collect($validated['target_checklist'] ?? [])
-            ->mapWithKeys(fn ($value, $key) => [$key => true])
-            ->all();
-
-        $payload = array_filter([
-            'group_id' => $groupId,
-            'meeting_no' => (int) $validated['meeting_no'],
-            'journal_date' => $validated['journal_date'],
-            'target_checklist' => empty($checklist) ? null : $checklist,
-            'target_vs_realization' => $validated['target_vs_realization'] ?? null,
-            'progress_today' => $validated['progress_today'],
-            'data_result' => $validated['data_result'] ?? null,
-            'problem' => $validated['problem'] ?? null,
-            'solution_next_step' => $validated['solution_next_step'] ?? null,
-            'insight' => $validated['insight'] ?? null,
-            'help_request' => $request->boolean('help_request'),
+        $payload = [
+            ...$this->journalPayload($validated, $request, $groupId),
             'created_by' => (string) $user->id,
-        ], fn ($value) => $value !== null);
+        ];
 
         try {
             $journalId = $firebase->push('journals', $payload);
@@ -92,22 +63,17 @@ class JournalController extends Controller
                 ->withErrors(['progress_today' => 'Gagal menyimpan jurnal: '.$e->getMessage()]);
         }
 
-        foreach ($request->file('documentations', []) as $file) {
-            try {
-                $metadata = $storage->storeDocumentation($file, $groupId, $journalId);
+        try {
+            $this->uploadDocumentations($request, $firebase, $storage, $groupId, $journalId);
+        } catch (Throwable $e) {
+            Log::error('Gagal upload dokumentasi', [
+                'message' => $e->getMessage(),
+                'journal_id' => $journalId,
+            ]);
 
-                $firebase->push('documentations', array_filter([
-                    ...$metadata,
-                    'group_id' => $groupId,
-                    'journal_id' => $journalId,
-                    'uploaded_by' => (string) $user->id,
-                ], fn ($value) => $value !== null));
-            } catch (Throwable $e) {
-                Log::error('Gagal upload dokumentasi', [
-                    'message' => $e->getMessage(),
-                    'file' => $file->getClientOriginalName(),
-                ]);
-            }
+            return redirect()
+                ->route('journals.edit', $journalId)
+                ->withErrors(['documentations' => 'Jurnal tersimpan, tapi dokumentasi gagal diupload: '.$e->getMessage()]);
         }
 
         return redirect()
@@ -132,10 +98,134 @@ class JournalController extends Controller
         ]);
     }
 
+    public function edit(string $journal, FirebaseService $firebase): View
+    {
+        $record = $firebase->find('journals', $journal);
+        abort_if(! $record, 404);
+        $this->authorizeJournal($record);
+
+        return view('journals.edit', [
+            'journal' => $record,
+            'groups' => collect($firebase->all('groups'))->sortBy('name')->values(),
+            'targets' => collect($firebase->all('targets'))->where('status', 'active')->sortBy('meeting_no')->values(),
+            'documentations' => collect($firebase->all('documentations'))->where('journal_id', $journal)->values(),
+        ]);
+    }
+
+    public function update(string $journal, Request $request, FirebaseService $firebase, CloudflareR2Service $storage): RedirectResponse
+    {
+        $record = $firebase->find('journals', $journal);
+        abort_if(! $record, 404);
+        $this->authorizeJournal($record);
+
+        $user = $request->user();
+        $validated = $request->validate($this->journalRules($user->isTeacher()));
+        $groupId = $user->isTeacher() ? $validated['group_id'] : ($record['group_id'] ?? $user->group_id);
+        abort_if(blank($groupId), 422, 'Akun siswa belum tersambung ke kelompok.');
+
+        $payload = [
+            ...$this->journalPayload($validated, $request, $groupId),
+            'updated_by' => (string) $user->id,
+        ];
+
+        try {
+            $firebase->update('journals', $journal, $payload);
+        } catch (Throwable $e) {
+            Log::error('Gagal update jurnal ke Firebase', [
+                'message' => $e->getMessage(),
+                'journal_id' => $journal,
+                'payload' => $payload,
+            ]);
+
+            return back()
+                ->withInput()
+                ->withErrors(['progress_today' => 'Gagal mengupdate jurnal: '.$e->getMessage()]);
+        }
+
+        try {
+            $this->uploadDocumentations($request, $firebase, $storage, $groupId, $journal);
+        } catch (Throwable $e) {
+            Log::error('Gagal upload dokumentasi saat update jurnal', [
+                'message' => $e->getMessage(),
+                'journal_id' => $journal,
+            ]);
+
+            return back()
+                ->withInput()
+                ->withErrors(['documentations' => 'Perubahan jurnal tersimpan, tapi dokumentasi gagal diupload: '.$e->getMessage()]);
+        }
+
+        return redirect()
+            ->route('journals.show', $journal)
+            ->with('status', 'Jurnal berhasil diperbarui.');
+    }
+
     private function authorizeJournal(array $journal): void
     {
         $user = auth()->user();
 
-        abort_if($user->isStudent() && $journal['group_id'] !== $user->group_id, 403);
+        abort_if($user->isStudent() && ($journal['group_id'] ?? null) !== $user->group_id, 403);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function journalRules(bool $requiresGroup): array
+    {
+        return [
+            'group_id' => [$requiresGroup ? 'required' : 'nullable', 'string', 'max:80'],
+            'meeting_no' => ['required', 'integer', 'min:1', 'max:99'],
+            'journal_date' => ['required', 'date'],
+            'target_checklist' => ['array'],
+            'target_checklist.*' => ['string'],
+            'target_vs_realization' => ['nullable', 'string', 'max:1200'],
+            'progress_today' => ['required', 'string', 'max:2000'],
+            'data_result' => ['nullable', 'string', 'max:2000'],
+            'problem' => ['nullable', 'string', 'max:1600'],
+            'solution_next_step' => ['nullable', 'string', 'max:1600'],
+            'insight' => ['nullable', 'string', 'max:1600'],
+            'help_request' => ['nullable', 'boolean'],
+            'documentations' => ['nullable', 'array', 'max:6'],
+            'documentations.*' => ['file', 'mimes:jpg,jpeg,png,webp,mp4,mov,pdf,txt', 'max:20480'],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     */
+    private function journalPayload(array $validated, Request $request, string $groupId): array
+    {
+        $checklist = collect($validated['target_checklist'] ?? [])
+            ->mapWithKeys(fn ($value, $key) => [$key => true])
+            ->all();
+
+        return [
+            'group_id' => $groupId,
+            'meeting_no' => (int) $validated['meeting_no'],
+            'journal_date' => $validated['journal_date'],
+            'target_checklist' => empty($checklist) ? null : $checklist,
+            'target_vs_realization' => $validated['target_vs_realization'] ?? null,
+            'progress_today' => $validated['progress_today'],
+            'data_result' => $validated['data_result'] ?? null,
+            'problem' => $validated['problem'] ?? null,
+            'solution_next_step' => $validated['solution_next_step'] ?? null,
+            'insight' => $validated['insight'] ?? null,
+            'help_request' => $request->boolean('help_request'),
+        ];
+    }
+
+    private function uploadDocumentations(Request $request, FirebaseService $firebase, CloudflareR2Service $storage, string $groupId, string $journalId): void
+    {
+        foreach ($request->file('documentations', []) as $file) {
+            $metadata = $storage->storeDocumentation($file, $groupId, $journalId);
+
+            $firebase->push('documentations', [
+                ...$metadata,
+                'group_id' => $groupId,
+                'journal_id' => $journalId,
+                'uploaded_by' => (string) $request->user()->id,
+            ]);
+        }
     }
 }

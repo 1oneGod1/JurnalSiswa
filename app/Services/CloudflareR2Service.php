@@ -5,6 +5,7 @@ namespace App\Services;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use RuntimeException;
 
 class CloudflareR2Service
 {
@@ -17,6 +18,10 @@ class CloudflareR2Service
         $filename = trim($filename, '-').($extension ? '.'.$extension : '');
 
         $path = Storage::disk($disk)->putFileAs($directory, $file, $filename);
+
+        if (! is_string($path) || $path === '') {
+            throw new RuntimeException('Upload file gagal disimpan.');
+        }
 
         return array_filter([
             'file_name' => $file->getClientOriginalName(),
@@ -43,14 +48,37 @@ class CloudflareR2Service
 
     private function disk(): string
     {
-        $hasR2Config = filled(config('filesystems.disks.r2.key'))
-            && filled(config('filesystems.disks.r2.secret'))
-            && filled(config('filesystems.disks.r2.bucket'))
-            && filled(config('filesystems.disks.r2.endpoint'));
+        $r2 = config('filesystems.disks.r2');
+        $hasR2Config = filled($r2['key'] ?? null)
+            && filled($r2['secret'] ?? null)
+            && filled($r2['bucket'] ?? null)
+            && filled($r2['endpoint'] ?? null);
+        $hasAnyR2Config = filled($r2['key'] ?? null)
+            || filled($r2['secret'] ?? null)
+            || filled($r2['bucket'] ?? null)
+            || filled($r2['endpoint'] ?? null);
+        $wantsR2 = config('filesystems.default') === 'r2' || $hasAnyR2Config;
 
         $hasS3Adapter = class_exists(\League\Flysystem\AwsS3V3\AwsS3V3Adapter::class);
 
-        return $hasR2Config && $hasS3Adapter ? 'r2' : 'public';
+        if (! $hasR2Config) {
+            if ($wantsR2) {
+                throw new RuntimeException('Konfigurasi R2 belum lengkap. Isi R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, dan R2_ENDPOINT.');
+            }
+
+            return 'public';
+        }
+
+        if (! $hasS3Adapter) {
+            throw new RuntimeException('Package league/flysystem-aws-s3-v3 belum terinstall.');
+        }
+
+        $endpointPath = parse_url((string) $r2['endpoint'], PHP_URL_PATH);
+        if (filled($endpointPath) && $endpointPath !== '/') {
+            throw new RuntimeException('R2_ENDPOINT jangan memakai nama bucket. Gunakan format https://<ACCOUNT_ID>.r2.cloudflarestorage.com');
+        }
+
+        return 'r2';
     }
 
     private function fileType(UploadedFile $file): string

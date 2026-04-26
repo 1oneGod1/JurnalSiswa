@@ -6,9 +6,12 @@
                     <span class="badge accent">{{ ($group['name'] ?? null) ?: ($journal['group_id'] ?? '-') }} &middot; Pertemuan {{ $journal['meeting_no'] ?? '-' }}</span>
                     <h1 class="page-title serif" style="margin-top: 10px;">Jurnal {{ $journal['journal_date'] ?? '-' }}</h1>
                 </div>
-                @if ($journal['help_request'] ?? false)
-                    <span class="badge err">Butuh bantuan</span>
-                @endif
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                    @if ($journal['help_request'] ?? false)
+                        <span class="badge err">Butuh bantuan</span>
+                    @endif
+                    <a href="{{ route('journals.edit', $journal['id']) }}" class="btn secondary" style="padding: 8px 12px;">Edit Jurnal</a>
+                </div>
             </div>
 
             <dl class="form-grid" style="margin-top: 22px;">
@@ -62,7 +65,7 @@
                     <div class="doc-slider" data-slider>
                         <div class="doc-slider-track" data-slider-track>
                             @foreach ($images as $img)
-                                @php $imageUrl = $img['url'] ?? '#'; @endphp
+                                @php $imageUrl = route('documentations.show', $img['id']); @endphp
                                 <div class="doc-slide">
                                     <a href="{{ $imageUrl }}" target="_blank">
                                         <img src="{{ $imageUrl }}" alt="{{ $img['file_name'] ?? 'Dokumentasi' }}" loading="lazy">
@@ -71,8 +74,8 @@
                             @endforeach
                         </div>
                         @if ($images->count() > 1)
-                            <button type="button" class="doc-slider-btn prev" data-slider-prev aria-label="Sebelumnya">‹</button>
-                            <button type="button" class="doc-slider-btn next" data-slider-next aria-label="Selanjutnya">›</button>
+                            <button type="button" class="doc-slider-btn prev" data-slider-prev aria-label="Sebelumnya">&lsaquo;</button>
+                            <button type="button" class="doc-slider-btn next" data-slider-next aria-label="Selanjutnya">&rsaquo;</button>
                             <div class="doc-slider-dots" data-slider-dots>
                                 @foreach ($images as $i => $img)
                                     <button type="button" data-slider-dot="{{ $i }}" class="{{ $i === 0 ? 'active' : '' }}"></button>
@@ -85,7 +88,7 @@
                 @if ($others->isNotEmpty() || $images->isEmpty())
                     <div class="list-divide">
                         @forelse ($others as $documentation)
-                            @php $documentationUrl = $documentation['url'] ?? '#'; @endphp
+                            @php $documentationUrl = route('documentations.show', $documentation['id']); @endphp
                             <a href="{{ $documentationUrl }}" target="_blank" class="entry-list-item">
                                 <strong>{{ $documentation['file_name'] ?? 'Dokumentasi' }}</strong>
                                 <span class="row-subtitle" style="display: block;">{{ $documentation['file_type'] ?? 'file' }}</span>
