@@ -24,7 +24,7 @@
             </div>
 
             <div class="role-cards">
-                <button class="role-card" type="button" data-role-card data-email="siswa@example.com">
+                <button class="role-card active" type="button" data-show="student-panel">
                     <div class="rc-icon student">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="8" r="3.5"></circle>
@@ -32,19 +32,19 @@
                         </svg>
                     </div>
                     <h3>Masuk sebagai Siswa</h3>
-                    <p class="desc">Isi jurnal per pertemuan, checklist target, upload bukti, dan baca feedback guru.</p>
+                    <p class="desc">Pilih kelompok dan nama. Tanpa password.</p>
                     <ul>
-                        <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4 10-10"></path></svg>Isi jurnal per pertemuan</li>
-                        <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4 10-10"></path></svg>Upload foto dan video evidence</li>
-                        <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4 10-10"></path></svg>Lihat target dan revisi</li>
+                        <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4 10-10"></path></svg>Pilih kelompok 1-12</li>
+                        <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4 10-10"></path></svg>Pilih nama dari daftar</li>
+                        <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4 10-10"></path></svg>Langsung isi jurnal</li>
                     </ul>
                     <div class="rc-foot">
                         <span class="rc-cta">Lanjutkan <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg></span>
-                        <span class="rc-tag">Akun siswa</span>
+                        <span class="rc-tag">Tanpa email</span>
                     </div>
                 </button>
 
-                <button class="role-card" type="button" data-role-card data-email="guru@example.com">
+                <button class="role-card" type="button" data-show="teacher-panel">
                     <div class="rc-icon teacher">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="9" cy="9" r="3"></circle>
@@ -57,8 +57,8 @@
                     <p class="desc">Pantau seluruh kelompok, tetapkan target mingguan, dan beri feedback terstruktur.</p>
                     <ul>
                         <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4 10-10"></path></svg>Dashboard progres semua kelompok</li>
-                        <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4 10-10"></path></svg>Target pertemuan dan checklist</li>
-                        <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4 10-10"></path></svg>Feedback prioritas</li>
+                        <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4 10-10"></path></svg>Kelola kelompok &amp; siswa</li>
+                        <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4 10-10"></path></svg>Beri feedback prioritas</li>
                     </ul>
                     <div class="rc-foot">
                         <span class="rc-cta">Masuk <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg></span>
@@ -67,18 +67,51 @@
                 </button>
             </div>
 
-            <div class="teacher-login-panel card card-pad" id="login-panel">
+            {{-- Student Panel --}}
+            <div class="teacher-login-panel card card-pad" id="student-panel">
+                <h2 class="serif" style="margin: 0 0 6px; font-size: 30px; letter-spacing: -.4px;">Masuk sebagai <em>Siswa.</em></h2>
+                <p class="page-subtitle">Pilih kelompok lalu pilih nama kamu.</p>
+
+                @if (count($groups) === 0)
+                    <p style="margin-top: 20px; color: var(--muted);">Belum ada kelompok yang didaftarkan oleh guru. Silakan minta guru untuk mendaftarkan kelompok terlebih dahulu.</p>
+                @else
+                    <div class="field" style="margin-top: 20px;">
+                        <label for="group-select">Kelompok</label>
+                        <select class="input" id="group-select">
+                            <option value="">— Pilih kelompok —</option>
+                            @foreach ($groups as $group)
+                                <option value="{{ $group['id'] }}">Kelompok {{ $group['number'] ?? '' }} &middot; {{ $group['name'] ?? '' }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <form action="{{ route('login.student') }}" method="POST" id="student-form" style="display: none;">
+                        @csrf
+                        <input type="hidden" name="student_id" id="student_id">
+                        <div class="field">
+                            <label>Nama</label>
+                            <div id="student-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+                            <p id="empty-students" style="color: var(--muted); font-size: 13px; margin-top: 8px; display: none;">
+                                Belum ada nama di kelompok ini. Minta guru mendaftarkan namamu dulu.
+                            </p>
+                        </div>
+                    </form>
+                @endif
+            </div>
+
+            {{-- Teacher Panel --}}
+            <div class="teacher-login-panel card card-pad" id="teacher-panel" style="display: none;">
                 <h2 class="serif" style="margin: 0 0 6px; font-size: 30px; letter-spacing: -.4px;">Masuk ke <em>Jurnal.</em></h2>
-                <p class="page-subtitle" id="login-copy">Pilih peran di atas, lalu gunakan password akun sekolah.</p>
+                <p class="page-subtitle">Gunakan akun guru untuk memantau semua kelompok.</p>
                 <form action="{{ route('login.store') }}" method="POST" style="margin-top: 20px;">
                     @csrf
                     <div class="field">
                         <label for="email">Email sekolah</label>
-                        <input class="input" id="email" name="email" type="email" value="{{ old('email', 'siswa@example.com') }}" required autofocus>
+                        <input class="input" id="email" name="email" type="email" value="{{ old('email', 'guru@example.com') }}" required>
                     </div>
                     <div class="field">
                         <label for="password">Kata sandi</label>
-                        <input class="input" id="password" name="password" type="password" value="password" required>
+                        <input class="input" id="password" name="password" type="password" required>
                     </div>
                     <label style="display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; margin-bottom: 16px;">
                         <input type="checkbox" name="remember" value="1">
@@ -88,27 +121,66 @@
                         Masuk ke dashboard
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>
                     </button>
+                    @error('email')
+                        <p style="color: var(--danger); font-size: 13px; margin-top: 12px;">{{ $message }}</p>
+                    @enderror
                 </form>
             </div>
 
             <div style="margin-top: 40px; text-align: center; color: var(--muted); font-size: 13px;">
-                &copy; 2026 Jurnal &middot; SMAN 8 &middot; Akun demo: guru@example.com / siswa@example.com, password: password
+                &copy; 2026 Jurnal &middot; SMAN 8
             </div>
         </div>
     </div>
 
     <script>
-        document.querySelectorAll('[data-role-card]').forEach((card) => {
+        const studentsByGroup = @json($studentsByGroup ?? []);
+
+        document.querySelectorAll('[data-show]').forEach((card) => {
             card.addEventListener('click', () => {
-                document.querySelectorAll('[data-role-card]').forEach((item) => item.classList.remove('active'));
+                document.querySelectorAll('[data-show]').forEach((item) => item.classList.remove('active'));
                 card.classList.add('active');
-                document.getElementById('email').value = card.dataset.email;
-                document.getElementById('password').value = 'password';
-                document.getElementById('login-copy').textContent = card.dataset.email.includes('guru')
-                    ? 'Gunakan akun guru untuk memantau semua kelompok.'
-                    : 'Gunakan akun siswa untuk mengisi jurnal kelompok.';
-                document.getElementById('login-panel').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                document.getElementById('student-panel').style.display = card.dataset.show === 'student-panel' ? '' : 'none';
+                document.getElementById('teacher-panel').style.display = card.dataset.show === 'teacher-panel' ? '' : 'none';
             });
         });
+
+        const groupSelect = document.getElementById('group-select');
+        if (groupSelect) {
+            groupSelect.addEventListener('change', (e) => {
+                const groupId = e.target.value;
+                const form = document.getElementById('student-form');
+                const list = document.getElementById('student-list');
+                const empty = document.getElementById('empty-students');
+
+                if (!groupId) {
+                    form.style.display = 'none';
+                    return;
+                }
+
+                form.style.display = '';
+                list.innerHTML = '';
+                const students = studentsByGroup[groupId] || [];
+
+                if (students.length === 0) {
+                    empty.style.display = '';
+                    return;
+                }
+
+                empty.style.display = 'none';
+                students.forEach((student) => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'btn btn-ghost';
+                    btn.style.cssText = 'width: 100%; justify-content: flex-start; padding: 14px 16px;';
+                    btn.textContent = student.name;
+                    btn.addEventListener('click', () => {
+                        document.getElementById('student_id').value = student.id;
+                        document.getElementById('student-form').submit();
+                    });
+                    list.appendChild(btn);
+                });
+            });
+        }
     </script>
 </x-layouts.app>

@@ -22,6 +22,10 @@
                 ['route' => 'journals.index', 'match' => 'journals.*', 'label' => 'Journal', 'icon' => 'M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4Z M5 17a3 3 0 0 1 3-3h10'],
                 ['route' => 'feedback.index', 'match' => 'feedback.*', 'label' => 'Feedback', 'icon' => 'M4 5h16v11H9l-5 4V5Z'],
             ];
+
+            if (auth()->user()->isTeacher()) {
+                $items[] = ['route' => 'groups.index', 'match' => 'groups.*', 'label' => 'Kelompok', 'icon' => 'M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6 M3 19c.7-3 3-4.5 6-4.5s5.3 1.5 6 4.5 M17 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5 M15 14c2.5.2 4.5 1.8 5.5 4.5'];
+            }
         @endphp
         <div class="app-shell">
             <aside class="sidebar">
