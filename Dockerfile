@@ -1,4 +1,14 @@
-FROM php:8.3-fpm
+FROM node:22-bookworm-slim AS assets
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build
+
+FROM php:8.4-fpm
 
 RUN apt-get update && apt-get install -y \
     nginx \
@@ -7,12 +17,11 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     git \
-    nodejs \
-    npm \
     libpng-dev \
+    libsqlite3-dev \
     libzip-dev \
     libonig-dev \
-    && docker-php-ext-install pdo pdo_mysql pcntl mbstring zip \
+    && docker-php-ext-install pdo pdo_mysql pdo_sqlite pcntl mbstring zip \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /var/log/supervisor /var/run/nginx
@@ -24,20 +33,20 @@ WORKDIR /var/www/html
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
 
-COPY package.json package-lock.json ./
-RUN npm ci
-
 COPY . .
+COPY --from=assets /app/public/build ./public/build
 RUN composer run-script post-autoload-dump || true
-RUN npm run build && rm -rf node_modules
 
 RUN mkdir -p storage/framework/sessions \
               storage/framework/views \
               storage/framework/cache/data \
               storage/logs \
+              database \
               bootstrap/cache \
+    && touch database/database.sqlite \
     && chmod -R 775 storage bootstrap/cache \
-    && chown -R www-data:www-data storage bootstrap/cache
+    && chmod -R 775 database \
+    && chown -R www-data:www-data storage bootstrap/cache database
 
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
