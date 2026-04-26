@@ -6,7 +6,9 @@ use App\Services\CloudflareR2Service;
 use App\Services\FirebaseService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
+use Throwable;
 
 class JournalController extends Controller
 {
@@ -58,11 +60,15 @@ class JournalController extends Controller
         $groupId = $user->isTeacher() ? $validated['group_id'] : $user->group_id;
         abort_if(blank($groupId), 422, 'Akun siswa belum tersambung ke kelompok.');
 
-        $journalId = $firebase->push('journals', [
+        $checklist = collect($validated['target_checklist'] ?? [])
+            ->mapWithKeys(fn ($value, $key) => [$key => true])
+            ->all();
+
+        $payload = array_filter([
             'group_id' => $groupId,
             'meeting_no' => (int) $validated['meeting_no'],
             'journal_date' => $validated['journal_date'],
-            'target_checklist' => collect($validated['target_checklist'] ?? [])->mapWithKeys(fn ($value, $key) => [$key => true])->all(),
+            'target_checklist' => empty($checklist) ? null : $checklist,
             'target_vs_realization' => $validated['target_vs_realization'] ?? null,
             'progress_today' => $validated['progress_today'],
             'data_result' => $validated['data_result'] ?? null,
@@ -71,17 +77,37 @@ class JournalController extends Controller
             'insight' => $validated['insight'] ?? null,
             'help_request' => $request->boolean('help_request'),
             'created_by' => (string) $user->id,
-        ]);
+        ], fn ($value) => $value !== null);
+
+        try {
+            $journalId = $firebase->push('journals', $payload);
+        } catch (Throwable $e) {
+            Log::error('Gagal simpan jurnal ke Firebase', [
+                'message' => $e->getMessage(),
+                'payload' => $payload,
+            ]);
+
+            return back()
+                ->withInput()
+                ->withErrors(['progress_today' => 'Gagal menyimpan jurnal: '.$e->getMessage()]);
+        }
 
         foreach ($request->file('documentations', []) as $file) {
-            $metadata = $storage->storeDocumentation($file, $groupId, $journalId);
+            try {
+                $metadata = $storage->storeDocumentation($file, $groupId, $journalId);
 
-            $firebase->push('documentations', [
-                ...$metadata,
-                'group_id' => $groupId,
-                'journal_id' => $journalId,
-                'uploaded_by' => (string) $user->id,
-            ]);
+                $firebase->push('documentations', array_filter([
+                    ...$metadata,
+                    'group_id' => $groupId,
+                    'journal_id' => $journalId,
+                    'uploaded_by' => (string) $user->id,
+                ], fn ($value) => $value !== null));
+            } catch (Throwable $e) {
+                Log::error('Gagal upload dokumentasi', [
+                    'message' => $e->getMessage(),
+                    'file' => $file->getClientOriginalName(),
+                ]);
+            }
         }
 
         return redirect()
