@@ -22,12 +22,23 @@ class CloudflareR2Service
             'file_name' => $file->getClientOriginalName(),
             'stored_name' => basename($path),
             'path' => $path,
-            'url' => Storage::disk($disk)->url($path),
+            'url' => $this->publicUrl($disk, $path),
             'mime_type' => $file->getClientMimeType(),
             'file_type' => $this->fileType($file),
             'size' => $file->getSize(),
             'storage_disk' => $disk,
         ];
+    }
+
+    private function publicUrl(string $disk, string $path): string
+    {
+        if ($disk === 'r2') {
+            $base = rtrim((string) config('filesystems.disks.r2.url', ''), '/');
+
+            return $base.'/'.ltrim($path, '/');
+        }
+
+        return Storage::disk($disk)->url($path);
     }
 
     private function disk(): string

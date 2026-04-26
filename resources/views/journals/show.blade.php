@@ -62,9 +62,7 @@
                     <div class="doc-slider" data-slider>
                         <div class="doc-slider-track" data-slider-track>
                             @foreach ($images as $img)
-                                @php
-                                    $imageUrl = isset($img['id'], $img['path']) ? route('documentations.show', $img['id']) : ($img['url'] ?? '#');
-                                @endphp
+                                @php $imageUrl = $img['url'] ?? '#'; @endphp
                                 <div class="doc-slide">
                                     <a href="{{ $imageUrl }}" target="_blank">
                                         <img src="{{ $imageUrl }}" alt="{{ $img['file_name'] ?? 'Dokumentasi' }}" loading="lazy">
@@ -87,9 +85,7 @@
                 @if ($others->isNotEmpty() || $images->isEmpty())
                     <div class="list-divide">
                         @forelse ($others as $documentation)
-                            @php
-                                $documentationUrl = isset($documentation['id'], $documentation['path']) ? route('documentations.show', $documentation['id']) : ($documentation['url'] ?? '#');
-                            @endphp
+                            @php $documentationUrl = $documentation['url'] ?? '#'; @endphp
                             <a href="{{ $documentationUrl }}" target="_blank" class="entry-list-item">
                                 <strong>{{ $documentation['file_name'] ?? 'Dokumentasi' }}</strong>
                                 <span class="row-subtitle" style="display: block;">{{ $documentation['file_type'] ?? 'file' }}</span>
