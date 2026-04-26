@@ -9,21 +9,33 @@ RUN apk add --no-cache \
     git \
     nodejs \
     npm \
-    && docker-php-ext-install pdo pdo_sqlite pcntl
+    libpng-dev \
+    oniguruma-dev \
+    && docker-php-ext-install pdo pdo_sqlite pcntl mbstring
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
 COPY . .
+RUN composer run-script post-autoload-dump || true
+RUN npm run build && rm -rf node_modules
 
-RUN composer install --no-dev --optimize-autoloader --no-interaction
-
-RUN npm ci && npm run build && rm -rf node_modules
-
-RUN mkdir -p storage/framework/{sessions,views,cache} storage/logs bootstrap/cache \
+RUN mkdir -p storage/framework/sessions \
+              storage/framework/views \
+              storage/framework/cache/data \
+              storage/logs \
+              bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache
+
+RUN mkdir -p /var/log/supervisor /run/nginx
 
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
