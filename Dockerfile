@@ -51,6 +51,7 @@ RUN mkdir -p storage/framework/sessions \
 
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY docker/php-uploads.ini /usr/local/etc/php/conf.d/zz-uploads.ini
 COPY docker/start.sh /start.sh
 RUN chmod +x /start.sh
 
