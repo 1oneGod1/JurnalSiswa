@@ -10,11 +10,11 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table): void {
             if (! Schema::hasColumn('users', 'role')) {
-                $table->string('role')->default('siswa')->after('password');
+                $table->string('role')->default('siswa');
             }
 
             if (! Schema::hasColumn('users', 'group_id')) {
-                $table->string('group_id')->nullable()->after('role');
+                $table->string('group_id')->nullable();
             }
         });
     }

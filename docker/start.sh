@@ -1,8 +1,29 @@
 #!/bin/sh
 set -e
 
-if [ -z "$APP_KEY" ]; then
-    php artisan key:generate --force
+# Laravel butuh .env exist walau pakai env vars dari Render
+if [ ! -f /var/www/html/.env ]; then
+    touch /var/www/html/.env
+fi
+
+generate_app_key() {
+    php -r 'echo "base64:".base64_encode(random_bytes(32));'
+}
+
+valid_app_key() {
+    php -r '
+        $key = getenv("APP_KEY") ?: "";
+        if (str_starts_with($key, "base64:")) {
+            $decoded = base64_decode(substr($key, 7), true);
+            exit(strlen($decoded) === 32 ? 0 : 1);
+        }
+
+        exit(strlen($key) === 32 ? 0 : 1);
+    '
+}
+
+if ! valid_app_key; then
+    export APP_KEY="$(generate_app_key)"
 fi
 
 if [ "${DB_CONNECTION:-sqlite}" = "sqlite" ]; then

@@ -43,6 +43,7 @@ RUN mkdir -p storage/framework/sessions \
               storage/logs \
               database \
               bootstrap/cache \
+    && touch .env \
     && touch database/database.sqlite \
     && chmod -R 775 storage bootstrap/cache \
     && chmod -R 775 database \
