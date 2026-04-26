@@ -1,6 +1,6 @@
-FROM php:8.3-fpm-alpine
+FROM php:8.3-fpm
 
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y \
     nginx \
     supervisor \
     curl \
@@ -10,8 +10,12 @@ RUN apk add --no-cache \
     nodejs \
     npm \
     libpng-dev \
-    oniguruma-dev \
-    && docker-php-ext-install pdo pdo_sqlite pcntl mbstring
+    libzip-dev \
+    libonig-dev \
+    && docker-php-ext-install pdo pdo_mysql pcntl mbstring zip \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /var/log/supervisor /var/run/nginx
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
@@ -34,8 +38,6 @@ RUN mkdir -p storage/framework/sessions \
               bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache
-
-RUN mkdir -p /var/log/supervisor /run/nginx
 
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
