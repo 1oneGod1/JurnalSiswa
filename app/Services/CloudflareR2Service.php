@@ -18,7 +18,7 @@ class CloudflareR2Service
 
         $path = Storage::disk($disk)->putFileAs($directory, $file, $filename);
 
-        return [
+        return array_filter([
             'file_name' => $file->getClientOriginalName(),
             'stored_name' => basename($path),
             'path' => $path,
@@ -27,15 +27,15 @@ class CloudflareR2Service
             'file_type' => $this->fileType($file),
             'size' => $file->getSize(),
             'storage_disk' => $disk,
-        ];
+        ], fn ($value) => $value !== null);
     }
 
-    private function publicUrl(string $disk, string $path): string
+    private function publicUrl(string $disk, string $path): ?string
     {
         if ($disk === 'r2') {
             $base = rtrim((string) config('filesystems.disks.r2.url', ''), '/');
 
-            return $base.'/'.ltrim($path, '/');
+            return filled($base) ? $base.'/'.ltrim($path, '/') : null;
         }
 
         return Storage::disk($disk)->url($path);

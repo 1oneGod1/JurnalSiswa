@@ -67,9 +67,9 @@ return [
             'region' => env('R2_REGION', 'auto'),
             'bucket' => env('R2_BUCKET'),
             'url' => env('R2_URL'),
-            'endpoint' => env('R2_ENDPOINT'),
+            'endpoint' => rtrim((string) env('R2_ENDPOINT', ''), '/'),
             'use_path_style_endpoint' => true,
-            'throw' => false,
+            'throw' => true,
             'report' => false,
         ],
 
