@@ -12,7 +12,16 @@ use Illuminate\View\View;
 
 class AuthController extends Controller
 {
-    public function showLogin(FirebaseService $firebase): View|RedirectResponse
+    public function showLogin(): View|RedirectResponse
+    {
+        if (Auth::check()) {
+            return redirect()->route('dashboard');
+        }
+
+        return view('auth.choose');
+    }
+
+    public function showStudentLogin(FirebaseService $firebase): View|RedirectResponse
     {
         if (Auth::check()) {
             return redirect()->route('dashboard');
@@ -31,10 +40,19 @@ class AuthController extends Controller
             ->map(fn ($items) => $items->values()->all())
             ->all();
 
-        return view('auth.login', [
+        return view('auth.student', [
             'groups' => $groups,
             'studentsByGroup' => $students,
         ]);
+    }
+
+    public function showTeacherLogin(): View|RedirectResponse
+    {
+        if (Auth::check()) {
+            return redirect()->route('dashboard');
+        }
+
+        return view('auth.teacher');
     }
 
     public function login(Request $request): RedirectResponse

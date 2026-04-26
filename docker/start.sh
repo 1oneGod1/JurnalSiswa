@@ -42,10 +42,19 @@ if [ "$USER_COUNT" = "0" ]; then
     php artisan db:seed --force || true
 fi
 
+# Clear cache dulu untuk pastikan env vars yang baru terbaca
+php artisan config:clear
+php artisan route:clear
+php artisan view:clear
+
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 php artisan storage:link || true
+
+# Pastikan storage writable untuk session file
+chmod -R 775 /var/www/html/storage
+chown -R www-data:www-data /var/www/html/storage
 
 mkdir -p /var/log/supervisor /var/run/php
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf

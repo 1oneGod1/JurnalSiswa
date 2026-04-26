@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function (): void {
     Route::get('login', [AuthController::class, 'showLogin'])->name('login');
+    Route::get('login/siswa', [AuthController::class, 'showStudentLogin'])->name('login.siswa');
+    Route::get('login/guru', [AuthController::class, 'showTeacherLogin'])->name('login.guru');
     Route::post('login', [AuthController::class, 'login'])->name('login.store');
     Route::post('login/student', [AuthController::class, 'studentLogin'])->name('login.student');
 });
