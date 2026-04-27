@@ -14,7 +14,7 @@ class JournalController extends Controller
 {
     public function index(FirebaseService $firebase): View
     {
-        $user = auth()->user();
+        $user = current_user();
         $groups = collect($firebase->all('groups'))->keyBy('id');
         $journals = collect($firebase->all('journals'));
 
@@ -38,7 +38,7 @@ class JournalController extends Controller
 
     public function store(Request $request, FirebaseService $firebase, CloudflareR2Service $storage): RedirectResponse
     {
-        $user = $request->user();
+        $user = current_user();
 
         $validated = $request->validate($this->journalRules($user->isTeacher()));
 
@@ -118,7 +118,7 @@ class JournalController extends Controller
         abort_if(! $record, 404);
         $this->authorizeJournal($record);
 
-        $user = $request->user();
+        $user = current_user();
         $validated = $request->validate($this->journalRules($user->isTeacher()));
         $groupId = $user->isTeacher() ? $validated['group_id'] : ($record['group_id'] ?? $user->group_id);
         abort_if(blank($groupId), 422, 'Akun siswa belum tersambung ke kelompok.');
@@ -193,7 +193,7 @@ class JournalController extends Controller
 
     private function authorizeJournal(array $journal): void
     {
-        $user = auth()->user();
+        $user = current_user();
 
         abort_if($user->isStudent() && ($journal['group_id'] ?? null) !== $user->group_id, 403);
     }
@@ -255,7 +255,7 @@ class JournalController extends Controller
                 ...$metadata,
                 'group_id' => $groupId,
                 'journal_id' => $journalId,
-                'uploaded_by' => (string) $request->user()->id,
+                'uploaded_by' => (string) current_user()->id,
             ]);
         }
     }

@@ -121,7 +121,7 @@
                     @endforelse
                 </div>
 
-                @if (auth()->user()->isTeacher())
+                @if (current_user()->isTeacher())
                     <form action="{{ route('feedback.store') }}" method="POST" class="form-card" style="border-top: 1px solid var(--border);">
                         @csrf
                         <input type="hidden" name="journal_id" value="{{ $journal['id'] }}">

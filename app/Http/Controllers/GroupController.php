@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use App\Services\FirebaseService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,26 +14,25 @@ class GroupController extends Controller
 {
     public function index(FirebaseService $firebase): View
     {
-        abort_unless(auth()->user()?->isTeacher(), 403);
+        abort_unless(current_user()?->isTeacher(), 403);
 
         $groups = collect($firebase->all('groups'))
             ->sortBy(fn ($group) => (int) ($group['number'] ?? 0))
             ->values();
 
-        $students = User::where('role', 'siswa')
-            ->orderBy('name')
-            ->get()
+        $studentsByGroup = collect($firebase->all('students'))
+            ->sortBy(fn ($student) => $student['name'] ?? '')
             ->groupBy('group_id');
 
         return view('groups.index', [
             'groups' => $groups,
-            'studentsByGroup' => $students,
+            'studentsByGroup' => $studentsByGroup,
         ]);
     }
 
     public function store(Request $request, FirebaseService $firebase): RedirectResponse
     {
-        abort_unless(auth()->user()?->isTeacher(), 403);
+        abort_unless(current_user()?->isTeacher(), 403);
 
         $data = $request->validate([
             'number' => ['required', 'integer', 'min:1', 'max:99'],
@@ -60,9 +58,15 @@ class GroupController extends Controller
 
     public function destroy(string $id, FirebaseService $firebase): RedirectResponse
     {
-        abort_unless(auth()->user()?->isTeacher(), 403);
+        abort_unless(current_user()?->isTeacher(), 403);
 
         try {
+            foreach (collect($firebase->all('students'))->where('group_id', $id) as $student) {
+                if (! empty($student['id'])) {
+                    $firebase->delete('students', $student['id']);
+                }
+            }
+
             $firebase->delete('groups', $id);
         } catch (Throwable $e) {
             return back()->withErrors(['group' => 'Gagal menghapus kelompok: '.$e->getMessage()]);
@@ -71,32 +75,40 @@ class GroupController extends Controller
         return redirect()->route('groups.index')->with('status', 'Kelompok dihapus.');
     }
 
-    public function storeStudent(Request $request, string $groupId): RedirectResponse
+    public function storeStudent(Request $request, string $groupId, FirebaseService $firebase): RedirectResponse
     {
-        abort_unless(auth()->user()?->isTeacher(), 403);
+        abort_unless(current_user()?->isTeacher(), 403);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
         ]);
 
-        $email = Str::slug($data['name'], '.').'-'.Str::lower(Str::random(4)).'@siswa.local';
+        try {
+            $firebase->push('students', [
+                'name' => $data['name'],
+                'group_id' => $groupId,
+                'slug' => Str::slug($data['name']),
+            ]);
+        } catch (Throwable $e) {
+            Log::error('Gagal daftarkan siswa', ['group_id' => $groupId, 'message' => $e->getMessage()]);
 
-        User::create([
-            'name' => $data['name'],
-            'email' => $email,
-            'password' => bcrypt(Str::random(20)),
-            'role' => 'siswa',
-            'group_id' => $groupId,
-        ]);
+            return back()
+                ->withInput()
+                ->withErrors(['name' => 'Gagal mendaftarkan siswa: '.$e->getMessage()]);
+        }
 
         return redirect()->route('groups.index')->with('status', 'Siswa didaftarkan.');
     }
 
-    public function destroyStudent(int $studentId): RedirectResponse
+    public function destroyStudent(string $studentId, FirebaseService $firebase): RedirectResponse
     {
-        abort_unless(auth()->user()?->isTeacher(), 403);
+        abort_unless(current_user()?->isTeacher(), 403);
 
-        User::where('role', 'siswa')->where('id', $studentId)->delete();
+        try {
+            $firebase->delete('students', $studentId);
+        } catch (Throwable $e) {
+            return back()->withErrors(['student' => 'Gagal menghapus siswa: '.$e->getMessage()]);
+        }
 
         return redirect()->route('groups.index')->with('status', 'Siswa dihapus.');
     }

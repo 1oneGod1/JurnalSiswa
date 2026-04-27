@@ -2,19 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use App\Services\FirebaseService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Session;
 use Illuminate\View\View;
 
 class AuthController extends Controller
 {
     public function showLogin(): View|RedirectResponse
     {
-        if (Auth::check()) {
+        if (current_user_check()) {
             return redirect()->route('dashboard');
         }
 
@@ -23,7 +22,7 @@ class AuthController extends Controller
 
     public function showStudentLogin(FirebaseService $firebase): View|RedirectResponse
     {
-        if (Auth::check()) {
+        if (current_user_check()) {
             return redirect()->route('dashboard');
         }
 
@@ -32,10 +31,8 @@ class AuthController extends Controller
             ->values()
             ->all();
 
-        $students = User::where('role', 'siswa')
-            ->orderBy('group_id')
-            ->orderBy('name')
-            ->get(['id', 'name', 'group_id'])
+        $students = collect($firebase->all('students'))
+            ->sortBy('name')
             ->groupBy('group_id')
             ->map(fn ($items) => $items->values()->all())
             ->all();
@@ -48,7 +45,7 @@ class AuthController extends Controller
 
     public function showTeacherLogin(): View|RedirectResponse
     {
-        if (Auth::check()) {
+        if (current_user_check()) {
             return redirect()->route('dashboard');
         }
 
@@ -73,21 +70,37 @@ class AuthController extends Controller
         return redirect()->intended(route('dashboard'));
     }
 
-    public function studentLogin(Request $request): RedirectResponse
+    public function studentLogin(Request $request, FirebaseService $firebase): RedirectResponse
     {
         $data = $request->validate([
-            'student_id' => ['required', 'integer', Rule::exists('users', 'id')->where('role', 'siswa')],
+            'student_id' => ['required', 'string'],
         ]);
 
-        Auth::loginUsingId((int) $data['student_id']);
+        $student = $firebase->find('students', $data['student_id']);
+
+        if (! $student) {
+            return back()->withErrors(['student_id' => 'Siswa tidak ditemukan.']);
+        }
+
+        Session::put('student_id', $student['id']);
+        Session::put('student_name', $student['name'] ?? 'Siswa');
+        Session::put('student_group_id', $student['group_id'] ?? null);
+
         $request->session()->regenerate();
+        Session::put('student_id', $student['id']);
+        Session::put('student_name', $student['name'] ?? 'Siswa');
+        Session::put('student_group_id', $student['group_id'] ?? null);
 
         return redirect()->route('dashboard');
     }
 
     public function logout(Request $request): RedirectResponse
     {
-        Auth::logout();
+        if (Auth::check()) {
+            Auth::logout();
+        }
+
+        Session::forget(['student_id', 'student_name', 'student_group_id']);
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

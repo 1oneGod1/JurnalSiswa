@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\EnsureCurrentUser;
+use App\Http\Middleware\EnsureGuestUser;
 use App\Http\Middleware\EnsureUserHasRole;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -14,6 +16,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'role' => EnsureUserHasRole::class,
+            'current_user' => EnsureCurrentUser::class,
+            'guest_user' => EnsureGuestUser::class,
         ]);
 
         $middleware->trustProxies(at: '*', headers: \Illuminate\Http\Request::HEADER_X_FORWARDED_FOR

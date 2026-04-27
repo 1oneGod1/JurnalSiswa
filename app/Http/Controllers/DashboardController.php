@@ -9,7 +9,7 @@ class DashboardController extends Controller
 {
     public function __invoke(FirebaseService $firebase): View
     {
-        $user = auth()->user();
+        $user = current_user();
         $groups = collect($firebase->all('groups'));
         $targets = collect($firebase->all('targets'))->where('status', 'active');
         $journals = collect($firebase->all('journals'));

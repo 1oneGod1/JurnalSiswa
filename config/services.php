@@ -38,6 +38,7 @@ return [
     'firebase' => [
         'database_url' => env('FIREBASE_DATABASE_URL'),
         'auth_token' => env('FIREBASE_AUTH_TOKEN'),
+        'storage_bucket' => env('FIREBASE_STORAGE_BUCKET', 'jurnalsiswa-eb7e4.firebasestorage.app'),
     ],
 
 ];

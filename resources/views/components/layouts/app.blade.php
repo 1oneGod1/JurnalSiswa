@@ -14,7 +14,8 @@
     <style>{!! $uiCss !!}</style>
 </head>
 <body>
-    @auth
+    @php $u = current_user(); @endphp
+    @if ($u)
         @php
             $items = [
                 ['route' => 'dashboard', 'match' => 'dashboard', 'label' => 'Dashboard', 'icon' => 'M3 11 12 4l9 7 M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9'],
@@ -23,7 +24,7 @@
                 ['route' => 'feedback.index', 'match' => 'feedback.*', 'label' => 'Feedback', 'icon' => 'M4 5h16v11H9l-5 4V5Z'],
             ];
 
-            if (auth()->user()->isTeacher()) {
+            if ($u->isTeacher()) {
                 $items[] = ['route' => 'groups.index', 'match' => 'groups.*', 'label' => 'Kelompok', 'icon' => 'M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6 M3 19c.7-3 3-4.5 6-4.5s5.3 1.5 6 4.5 M17 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5 M15 14c2.5.2 4.5 1.8 5.5 4.5'];
             }
         @endphp
@@ -50,8 +51,8 @@
                 </nav>
                 <div class="sidebar-footer">
                     <div class="user-chip">
-                        <div class="row-title">{{ auth()->user()->name }}</div>
-                        <div class="row-subtitle">{{ ucfirst(auth()->user()->role) }} @if(auth()->user()->group_id) &middot; {{ auth()->user()->group_id }} @endif</div>
+                        <div class="row-title">{{ $u->name }}</div>
+                        <div class="row-subtitle">{{ ucfirst($u->role) }} @if($u->group_id) &middot; {{ $u->group_id }} @endif</div>
                         <form action="{{ route('logout') }}" method="POST" style="margin-top: 10px;">
                             @csrf
                             <button class="btn secondary" type="submit" style="width: 100%; padding: 8px 10px;">Keluar</button>
@@ -106,6 +107,6 @@
             </div>
         @endif
         {{ $slot }}
-    @endauth
+    @endif
 </body>
 </html>

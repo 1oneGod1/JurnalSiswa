@@ -10,7 +10,7 @@
     <form action="{{ route('journals.store') }}" method="POST" enctype="multipart/form-data" class="card form-card form-grid" style="max-width: 920px;">
         @csrf
         <div class="grid-3">
-            @if (auth()->user()->isTeacher())
+            @if (current_user()->isTeacher())
                 <div class="field">
                     <label for="group_id">Kelompok</label>
                     <select class="input" id="group_id" name="group_id" required>

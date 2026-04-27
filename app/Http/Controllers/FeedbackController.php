@@ -12,7 +12,7 @@ class FeedbackController extends Controller
 {
     public function index(FirebaseService $firebase): View
     {
-        $user = auth()->user();
+        $user = current_user();
         $feedbacks = collect($firebase->all('feedbacks'));
 
         if ($user->isStudent()) {
@@ -28,7 +28,7 @@ class FeedbackController extends Controller
 
     public function store(Request $request, FirebaseService $firebase): RedirectResponse
     {
-        abort_unless($request->user()->isTeacher(), 403);
+        abort_unless(current_user()->isTeacher(), 403);
 
         $validated = $request->validate([
             'journal_id' => ['required', 'string'],
@@ -45,7 +45,7 @@ class FeedbackController extends Controller
             $firebase->push('feedbacks', [
                 ...$validated,
                 'group_id' => $journal['group_id'],
-                'created_by' => (string) $request->user()->id,
+                'created_by' => (string) current_user()->id,
             ]);
         } catch (Throwable $e) {
             return back()

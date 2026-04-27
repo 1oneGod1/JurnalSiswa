@@ -8,7 +8,7 @@
     </div>
 
     <div class="split-grid">
-        @if (auth()->user()->isTeacher())
+        @if (current_user()->isTeacher())
             <section class="card form-card">
                 <h2 class="card-title">Buat target</h2>
                 <form action="{{ route('targets.store') }}" method="POST" class="form-grid" style="margin-top: 18px;">
@@ -102,7 +102,7 @@
                             </div>
                         @endif
 
-                        @if (auth()->user()->isTeacher())
+                        @if (current_user()->isTeacher())
                             <div style="margin-top: 14px; display: flex; gap: 12px; align-items: center;">
                                 @if (($target['status'] ?? 'active') === 'active')
                                     <form action="{{ route('targets.archive', $target['id']) }}" method="POST" style="margin: 0;">

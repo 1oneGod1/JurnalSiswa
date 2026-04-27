@@ -56,8 +56,8 @@
                             <ul style="list-style: none; padding: 0; margin: 0 0 12px; display: flex; flex-direction: column; gap: 6px;">
                                 @foreach ($members as $member)
                                     <li style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--surface-2, #f5f5f4); border-radius: 8px;">
-                                        <span>{{ $member->name }}</span>
-                                        <form action="{{ route('groups.students.destroy', $member->id) }}" method="POST" onsubmit="return confirm('Hapus siswa ini?');">
+                                        <span>{{ $member['name'] ?? '-' }}</span>
+                                        <form action="{{ route('groups.students.destroy', $member['id']) }}" method="POST" onsubmit="return confirm('Hapus siswa ini?');">
                                             @csrf @method('DELETE')
                                             <button class="btn btn-ghost" type="submit" style="padding: 4px 8px; font-size: 11px;">Hapus</button>
                                         </form>

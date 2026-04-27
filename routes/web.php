@@ -9,7 +9,7 @@ use App\Http\Controllers\JournalController;
 use App\Http\Controllers\TargetController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware('guest')->group(function (): void {
+Route::middleware('guest_user')->group(function (): void {
     Route::get('login', [AuthController::class, 'showLogin'])->name('login');
     Route::get('login/siswa', [AuthController::class, 'showStudentLogin'])->name('login.siswa');
     Route::get('login/guru', [AuthController::class, 'showTeacherLogin'])->name('login.guru');
@@ -18,12 +18,12 @@ Route::middleware('guest')->group(function (): void {
 });
 
 Route::post('logout', [AuthController::class, 'logout'])
-    ->middleware('auth')
+    ->middleware('current_user')
     ->name('logout');
 
 Route::redirect('/', '/dashboard');
 
-Route::middleware('auth')->group(function (): void {
+Route::middleware('current_user')->group(function (): void {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 
     Route::get('groups', [GroupController::class, 'index'])->name('groups.index');

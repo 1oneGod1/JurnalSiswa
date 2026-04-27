@@ -29,7 +29,7 @@ class TargetController extends Controller
 
     public function store(Request $request, FirebaseService $firebase): RedirectResponse
     {
-        abort_unless($request->user()->isTeacher(), 403);
+        abort_unless(current_user()->isTeacher(), 403);
 
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:120'],
@@ -55,7 +55,7 @@ class TargetController extends Controller
             'description' => $validated['description'] ?? null,
             'checklist_items' => $items,
             'status' => 'active',
-            'created_by' => (string) $request->user()->id,
+            'created_by' => (string) current_user()->id,
         ];
 
         if ($validated['mode'] === 'pertemuan') {
@@ -92,7 +92,7 @@ class TargetController extends Controller
 
     public function archive(string $target, FirebaseService $firebase): RedirectResponse
     {
-        abort_unless(auth()->user()->isTeacher(), 403);
+        abort_unless(current_user()->isTeacher(), 403);
 
         try {
             $firebase->update('targets', $target, ['status' => 'archived']);
@@ -105,7 +105,7 @@ class TargetController extends Controller
 
     public function destroy(string $target, FirebaseService $firebase): RedirectResponse
     {
-        abort_unless(auth()->user()->isTeacher(), 403);
+        abort_unless(current_user()->isTeacher(), 403);
 
         try {
             $firebase->delete('targets', $target);
