@@ -49,3 +49,5 @@ services:
         sync: false
       - key: R2_REGION
         value: auto
+      - key: R2_WORKER_URL
+        sync: false

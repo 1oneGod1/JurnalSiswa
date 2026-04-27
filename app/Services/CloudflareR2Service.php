@@ -2,21 +2,93 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Throwable;
 
 class CloudflareR2Service
 {
     public function storeDocumentation(UploadedFile $file, string $groupId, string $journalId): array
     {
-        $disk = $this->disk();
         $directory = 'documentations/'.$groupId.'/'.$journalId;
         $filename = now()->format('YmdHis').'-'.Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME));
         $extension = $file->getClientOriginalExtension();
         $filename = trim($filename, '-').($extension ? '.'.$extension : '');
+        $path = $directory.'/'.$filename;
 
+        if ($workerUrl = $this->workerUrl()) {
+            return $this->uploadViaWorker($workerUrl, $file, $path);
+        }
+
+        return $this->uploadViaS3($file, $directory, $filename);
+    }
+
+    private function uploadViaWorker(string $workerUrl, UploadedFile $file, string $path): array
+    {
+        $attempts = $this->workerAttempts($workerUrl, $file, $path);
+        $errors = [];
+
+        foreach ($attempts as $label => $send) {
+            try {
+                $response = $send();
+
+                if ($response->successful()) {
+                    return [
+                        'file_name' => $file->getClientOriginalName(),
+                        'stored_name' => basename($path),
+                        'path' => $path,
+                        'url' => $this->publicUrl($path),
+                        'mime_type' => $file->getClientMimeType(),
+                        'file_type' => $this->fileType($file),
+                        'size' => $file->getSize(),
+                        'storage_disk' => 'r2-worker',
+                        'worker_strategy' => $label,
+                    ];
+                }
+
+                $errors[$label] = $response->status().' '.Str::limit($response->body(), 200);
+            } catch (Throwable $e) {
+                $errors[$label] = $e->getMessage();
+            }
+        }
+
+        Log::error('Semua strategi upload Worker gagal', ['errors' => $errors, 'worker_url' => $workerUrl]);
+
+        throw new RuntimeException('Upload via Worker gagal: '.json_encode($errors, JSON_UNESCAPED_SLASHES));
+    }
+
+    /**
+     * @return array<string, callable(): \Illuminate\Http\Client\Response>
+     */
+    private function workerAttempts(string $workerUrl, UploadedFile $file, string $path): array
+    {
+        $base = rtrim($workerUrl, '/');
+        $contents = file_get_contents($file->getRealPath());
+        $mime = $file->getClientMimeType();
+
+        $multipart = fn (): PendingRequest => Http::asMultipart()
+            ->timeout(60)
+            ->attach('file', $contents, basename($path));
+
+        $putRaw = fn (): PendingRequest => Http::withBody($contents, $mime)->timeout(60);
+
+        return [
+            'PUT /{path} (raw body)' => fn () => $putRaw()->put($base.'/'.ltrim($path, '/')),
+            'POST /{path} (multipart)' => fn () => $multipart()->post($base.'/'.ltrim($path, '/'), ['key' => $path]),
+            'POST /upload?key={path} (multipart)' => fn () => $multipart()->post($base.'/upload?key='.urlencode($path), ['key' => $path]),
+            'POST / (multipart with key)' => fn () => $multipart()->post($base, ['key' => $path]),
+            'PUT /upload/{path} (raw)' => fn () => $putRaw()->put($base.'/upload/'.ltrim($path, '/')),
+        ];
+    }
+
+    private function uploadViaS3(UploadedFile $file, string $directory, string $filename): array
+    {
+        $disk = $this->disk();
         $path = Storage::disk($disk)->putFileAs($directory, $file, $filename);
 
         if (! is_string($path) || $path === '') {
@@ -27,7 +99,7 @@ class CloudflareR2Service
             'file_name' => $file->getClientOriginalName(),
             'stored_name' => basename($path),
             'path' => $path,
-            'url' => $this->publicUrl($disk, $path),
+            'url' => $disk === 'r2' ? $this->publicUrl($path) : Storage::disk($disk)->url($path),
             'mime_type' => $file->getClientMimeType(),
             'file_type' => $this->fileType($file),
             'size' => $file->getSize(),
@@ -35,15 +107,18 @@ class CloudflareR2Service
         ], fn ($value) => $value !== null);
     }
 
-    private function publicUrl(string $disk, string $path): ?string
+    private function publicUrl(string $path): ?string
     {
-        if ($disk === 'r2') {
-            $base = rtrim((string) config('filesystems.disks.r2.url', ''), '/');
+        $base = rtrim((string) config('filesystems.disks.r2.url', ''), '/');
 
-            return filled($base) ? $base.'/'.ltrim($path, '/') : null;
-        }
+        return filled($base) ? $base.'/'.ltrim($path, '/') : null;
+    }
 
-        return Storage::disk($disk)->url($path);
+    private function workerUrl(): ?string
+    {
+        $url = (string) env('R2_WORKER_URL', '');
+
+        return $url !== '' ? $url : null;
     }
 
     private function disk(): string
@@ -53,32 +128,12 @@ class CloudflareR2Service
             && filled($r2['secret'] ?? null)
             && filled($r2['bucket'] ?? null)
             && filled($r2['endpoint'] ?? null);
-        $hasAnyR2Config = filled($r2['key'] ?? null)
-            || filled($r2['secret'] ?? null)
-            || filled($r2['bucket'] ?? null)
-            || filled($r2['endpoint'] ?? null);
-        $wantsR2 = config('filesystems.default') === 'r2' || $hasAnyR2Config;
-
-        $hasS3Adapter = class_exists(\League\Flysystem\AwsS3V3\AwsS3V3Adapter::class);
 
         if (! $hasR2Config) {
-            if ($wantsR2) {
-                throw new RuntimeException('Konfigurasi R2 belum lengkap. Isi R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, dan R2_ENDPOINT.');
-            }
-
             return 'public';
         }
 
-        if (! $hasS3Adapter) {
-            throw new RuntimeException('Package league/flysystem-aws-s3-v3 belum terinstall.');
-        }
-
-        $endpointPath = parse_url((string) $r2['endpoint'], PHP_URL_PATH);
-        if (filled($endpointPath) && $endpointPath !== '/') {
-            throw new RuntimeException('R2_ENDPOINT jangan memakai nama bucket. Gunakan format https://<ACCOUNT_ID>.r2.cloudflarestorage.com');
-        }
-
-        return 'r2';
+        return class_exists(\League\Flysystem\AwsS3V3\AwsS3V3Adapter::class) ? 'r2' : 'public';
     }
 
     private function fileType(UploadedFile $file): string
