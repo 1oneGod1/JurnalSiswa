@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Services\FirebaseService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Throwable;
@@ -47,12 +48,14 @@ class GroupController extends Controller
                 'name' => $data['name'],
             ]);
         } catch (Throwable $e) {
+            Log::error('Gagal simpan kelompok', ['id' => $id, 'data' => $data, 'message' => $e->getMessage()]);
+
             return back()
                 ->withInput()
                 ->withErrors(['name' => 'Gagal menyimpan kelompok: '.$e->getMessage()]);
         }
 
-        return redirect()->route('groups.index')->with('status', 'Kelompok dibuat.');
+        return redirect()->route('groups.index')->with('status', "Kelompok {$id} dibuat.");
     }
 
     public function destroy(string $id, FirebaseService $firebase): RedirectResponse
