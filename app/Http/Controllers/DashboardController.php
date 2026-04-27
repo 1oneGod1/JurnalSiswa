@@ -27,7 +27,7 @@ class DashboardController extends Controller
         $targetIds = $targets->pluck('id')->all();
         $groupSummaries = $groups->map(function (array $group) use ($journals, $feedbacks, $documentations, $readiness, $targetIds): array {
             $groupJournals = $journals->where('group_id', $group['id']);
-            $latestJournal = $groupJournals->sortByDesc(fn ($journal) => $journal['journal_date'] ?? $journal['created_at'] ?? '')->first();
+            $latestJournal = $groupJournals->sortByDesc(fn ($journal) => $this->journalSortKey($journal))->first();
             $checkedTargets = $groupJournals
                 ->flatMap(fn ($journal) => collect($journal['target_checklist'] ?? [])->filter()->keys())
                 ->unique()
@@ -63,9 +63,19 @@ class DashboardController extends Controller
         return view('dashboard.index', [
             'stats' => $stats,
             'groups' => $groupSummaries,
-            'latestJournals' => $journals->sortByDesc(fn ($journal) => $journal['journal_date'] ?? $journal['created_at'] ?? '')->take(5),
-            'helpRequests' => $journals->where('help_request', true)->sortByDesc('created_at')->take(5),
+            'latestJournals' => $journals->sortByDesc(fn ($journal) => $this->journalSortKey($journal))->take(5),
+            'helpRequests' => $journals->where('help_request', true)->sortByDesc(fn ($journal) => $this->journalSortKey($journal))->take(5),
             'targets' => $targets->sortByDesc('meeting_no')->take(4),
         ]);
+    }
+
+    private function journalSortKey(array $journal): string
+    {
+        return sprintf(
+            '%03d-%s-%s',
+            (int) ($journal['meeting_no'] ?? 0),
+            $journal['journal_date'] ?? '',
+            $journal['created_at'] ?? ''
+        );
     }
 }

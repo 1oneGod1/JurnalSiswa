@@ -23,7 +23,7 @@ class JournalController extends Controller
         }
 
         return view('journals.index', [
-            'journals' => $journals->sortByDesc(fn ($journal) => $journal['journal_date'] ?? $journal['created_at'] ?? '')->values(),
+            'journals' => $journals->sortByDesc(fn ($journal) => $this->journalSortKey($journal))->values(),
             'groups' => $groups,
         ]);
     }
@@ -196,6 +196,16 @@ class JournalController extends Controller
         $user = current_user();
 
         abort_if($user->isStudent() && ($journal['group_id'] ?? null) !== $user->group_id, 403);
+    }
+
+    private function journalSortKey(array $journal): string
+    {
+        return sprintf(
+            '%03d-%s-%s',
+            (int) ($journal['meeting_no'] ?? 0),
+            $journal['journal_date'] ?? '',
+            $journal['created_at'] ?? ''
+        );
     }
 
     /**

@@ -3,7 +3,7 @@
         <div>
             <p class="page-kicker">Journal</p>
             <h1 class="page-title serif">Isi jurnal pertemuan</h1>
-            <p class="page-subtitle">Catat target, realisasi, data, kendala, dan dokumentasi.</p>
+            <p class="page-subtitle">Catat target pertemuan, realisasi, data, kendala, dan dokumentasi.</p>
         </div>
     </div>
 
@@ -26,7 +26,7 @@
                 <input class="input" id="meeting_no" name="meeting_no" type="number" min="1" value="{{ old('meeting_no', 1) }}" required>
             </div>
             <div class="field">
-                <label for="journal_date">Tanggal</label>
+                <label for="journal_date">Tanggal pertemuan</label>
                 <input class="input" id="journal_date" name="journal_date" type="date" value="{{ old('journal_date', now()->toDateString()) }}" required>
             </div>
         </div>
@@ -55,12 +55,12 @@
         </section>
 
         @foreach ([
-            'target_vs_realization' => ['Target vs realisasi', 'Apa target hari ini dan apa yang benar-benar selesai?'],
-            'progress_today' => ['Progress hari ini', 'Tuliskan pekerjaan yang dilakukan kelompok.'],
+            'target_vs_realization' => ['Target vs realisasi', 'Apa target pertemuan ini dan apa yang benar-benar selesai?'],
+            'progress_today' => ['Progress pertemuan ini', 'Tuliskan pekerjaan yang dilakukan kelompok pada pertemuan ini.'],
             'data_result' => ['Data atau hasil', 'Contoh: sensor aktif pada tinggi air 8 cm.'],
             'problem' => ['Kendala', 'Masalah teknis, desain, data, atau kolaborasi.'],
             'solution_next_step' => ['Solusi dan next step', 'Langkah perbaikan berikutnya.'],
-            'insight' => ['Insight', 'Pelajaran atau temuan penting dari proses hari ini.'],
+            'insight' => ['Insight', 'Pelajaran atau temuan penting dari pertemuan ini.'],
         ] as $name => [$label, $placeholder])
             <div class="field">
                 <label for="{{ $name }}">{{ $label }}</label>
