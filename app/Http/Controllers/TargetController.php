@@ -14,7 +14,14 @@ class TargetController extends Controller
     {
         return view('targets.index', [
             'targets' => collect($firebase->all('targets'))
-                ->sortByDesc(fn ($target) => sprintf('%03d-%s', $target['meeting_no'] ?? 0, $target['created_at'] ?? ''))
+                ->sortByDesc(function ($target) {
+                    $date = $target['target_date']
+                        ?? $target['week_start']
+                        ?? $target['created_at']
+                        ?? '0000-00-00';
+
+                    return $date.'-'.($target['created_at'] ?? '');
+                })
                 ->values(),
         ]);
     }
