@@ -3,10 +3,10 @@
         <div>
             <p class="page-kicker">Dashboard</p>
             <h1 class="page-title serif">Ringkasan progress</h1>
-            <p class="page-subtitle">Pantau kelompok, jurnal pertemuan terakhir, help request, dan kesiapan expo.</p>
+            <p class="page-subtitle">Pantau kelompok, jurnal terbaru, help request, dan kesiapan expo.</p>
         </div>
         <a href="{{ route('journals.create') }}" class="btn">
-            Jurnal Pertemuan Baru
+            Jurnal Baru
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>
         </a>
     </div>
@@ -82,7 +82,7 @@
 
                         @if ($summary['latest_journal'])
                             <a href="{{ route('journals.show', $summary['latest_journal']['id']) }}" class="soft-link">
-                                Jurnal pertemuan {{ $summary['latest_journal']['meeting_no'] ?? '-' }}: {{ $summary['latest_journal']['progress_today'] ?? 'Catatan belum lengkap' }}
+                                Jurnal terbaru: {{ $summary['latest_journal']['progress_today'] ?? 'Catatan belum lengkap' }}
                             </a>
                         @endif
                     </div>

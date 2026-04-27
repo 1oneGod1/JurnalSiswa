@@ -3,9 +3,9 @@
         <div>
             <p class="page-kicker">Journal</p>
             <h1 class="page-title serif">Catatan progress</h1>
-            <p class="page-subtitle">Jurnal tiap pertemuan, lengkap dengan status bantuan.</p>
+            <p class="page-subtitle">Jurnal harian lengkap dengan status bantuan.</p>
         </div>
-        <a href="{{ route('journals.create') }}" class="btn">Isi Jurnal Pertemuan</a>
+        <a href="{{ route('journals.create') }}" class="btn">Isi Jurnal</a>
     </div>
 
     <section class="card">
@@ -16,8 +16,8 @@
                         <div class="row-top">
                             <div>
                                 <span class="badge accent">{{ $groups->get($journal['group_id'] ?? null)['name'] ?? ($journal['group_id'] ?? '-') }} &middot; Pertemuan {{ $journal['meeting_no'] ?? '-' }}</span>
-                                <h2 style="margin: 9px 0 0; font-size: 15px; font-weight: 650;">Jurnal Pertemuan {{ $journal['meeting_no'] ?? '-' }}</h2>
-                                <p class="row-subtitle">Tanggal pertemuan: {{ $journal['journal_date'] ?? '-' }}</p>
+                                <h2 style="margin: 9px 0 0; font-size: 15px; font-weight: 650;">Jurnal {{ $journal['journal_date'] ?? '-' }}</h2>
+                                <p class="row-subtitle">Pertemuan {{ $journal['meeting_no'] ?? '-' }}</p>
                                 <p style="margin: 8px 0 0; color: var(--ink-2); font-size: 13px;">{{ $journal['progress_today'] ?? 'Catatan belum lengkap' }}</p>
                             </div>
                             @if ($journal['help_request'] ?? false)

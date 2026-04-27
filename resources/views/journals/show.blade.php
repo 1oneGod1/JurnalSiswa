@@ -4,8 +4,8 @@
             <div class="row-top">
                 <div>
                     <span class="badge accent">{{ ($group['name'] ?? null) ?: ($journal['group_id'] ?? '-') }}</span>
-                    <h1 class="page-title serif" style="margin-top: 10px;">Jurnal Pertemuan {{ $journal['meeting_no'] ?? '-' }}</h1>
-                    <p class="row-subtitle" style="margin-top: 6px;">Tanggal pertemuan: {{ $journal['journal_date'] ?? '-' }}</p>
+                    <h1 class="page-title serif" style="margin-top: 10px;">Jurnal {{ $journal['journal_date'] ?? '-' }}</h1>
+                    <p class="row-subtitle" style="margin-top: 6px;">Pertemuan {{ $journal['meeting_no'] ?? '-' }}</p>
                 </div>
                 <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                     @if ($journal['help_request'] ?? false)
@@ -18,7 +18,7 @@
             <dl class="form-grid" style="margin-top: 22px;">
                 @foreach ([
                     'target_vs_realization' => 'Target vs realisasi',
-                    'progress_today' => 'Progress pertemuan ini',
+                    'progress_today' => 'Progress hari ini',
                     'data_result' => 'Data atau hasil',
                     'problem' => 'Kendala',
                     'solution_next_step' => 'Solusi dan next step',
