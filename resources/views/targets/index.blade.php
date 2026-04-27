@@ -102,12 +102,20 @@
                             </div>
                         @endif
 
-                        @if (auth()->user()->isTeacher() && ($target['status'] ?? 'active') === 'active')
-                            <form action="{{ route('targets.destroy', $target['id']) }}" method="POST" style="margin-top: 14px;">
-                                @csrf
-                                @method('DELETE')
-                                <button class="danger-link" type="submit">Arsipkan target</button>
-                            </form>
+                        @if (auth()->user()->isTeacher())
+                            <div style="margin-top: 14px; display: flex; gap: 12px; align-items: center;">
+                                @if (($target['status'] ?? 'active') === 'active')
+                                    <form action="{{ route('targets.archive', $target['id']) }}" method="POST" style="margin: 0;">
+                                        @csrf
+                                        <button class="danger-link" type="submit">Arsipkan</button>
+                                    </form>
+                                @endif
+                                <form action="{{ route('targets.destroy', $target['id']) }}" method="POST" style="margin: 0;" onsubmit="return confirm('Hapus permanen target ini? Aksi ini tidak bisa dibatalkan.');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button class="danger-link" type="submit" style="color: var(--err);">Hapus permanen</button>
+                                </form>
+                            </div>
                         @endif
                     </article>
                 @empty

@@ -34,6 +34,8 @@ Route::middleware('auth')->group(function (): void {
 
     Route::resource('targets', TargetController::class)
         ->only(['index', 'store', 'destroy']);
+    Route::post('targets/{target}/archive', [TargetController::class, 'archive'])
+        ->name('targets.archive');
 
     Route::resource('journals', JournalController::class)
         ->only(['index', 'create', 'store', 'show', 'edit', 'update']);

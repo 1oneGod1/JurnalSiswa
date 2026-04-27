@@ -66,7 +66,7 @@ class TargetController extends Controller
             ->with('status', 'Target pertemuan berhasil dibuat.');
     }
 
-    public function destroy(string $target, FirebaseService $firebase): RedirectResponse
+    public function archive(string $target, FirebaseService $firebase): RedirectResponse
     {
         abort_unless(auth()->user()->isTeacher(), 403);
 
@@ -77,5 +77,18 @@ class TargetController extends Controller
         }
 
         return back()->with('status', 'Target diarsipkan.');
+    }
+
+    public function destroy(string $target, FirebaseService $firebase): RedirectResponse
+    {
+        abort_unless(auth()->user()->isTeacher(), 403);
+
+        try {
+            $firebase->delete('targets', $target);
+        } catch (Throwable $e) {
+            return back()->withErrors(['target' => 'Gagal menghapus target: '.$e->getMessage()]);
+        }
+
+        return back()->with('status', 'Target dihapus permanen.');
     }
 }
