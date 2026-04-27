@@ -2,14 +2,12 @@
 
 namespace App\Services;
 
-use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RuntimeException;
-use Throwable;
 
 class CloudflareR2Service
 {
@@ -30,59 +28,36 @@ class CloudflareR2Service
 
     private function uploadViaWorker(string $workerUrl, UploadedFile $file, string $path): array
     {
-        $attempts = $this->workerAttempts($workerUrl, $file, $path);
-        $errors = [];
+        $base = rtrim($workerUrl, '/');
+        $endpoint = $base.'/upload';
 
-        foreach ($attempts as $label => $send) {
-            try {
-                $response = $send();
+        $response = Http::timeout(60)
+            ->attach('file', file_get_contents($file->getRealPath()), basename($path))
+            ->post($endpoint, ['key' => $path]);
 
-                if ($response->successful()) {
-                    return [
-                        'file_name' => $file->getClientOriginalName(),
-                        'stored_name' => basename($path),
-                        'path' => $path,
-                        'url' => $this->publicUrl($path),
-                        'mime_type' => $file->getClientMimeType(),
-                        'file_type' => $this->fileType($file),
-                        'size' => $file->getSize(),
-                        'storage_disk' => 'r2-worker',
-                        'worker_strategy' => $label,
-                    ];
-                }
+        if (! $response->successful()) {
+            Log::error('Worker upload gagal', [
+                'endpoint' => $endpoint,
+                'status' => $response->status(),
+                'body' => Str::limit($response->body(), 500),
+                'key' => $path,
+            ]);
 
-                $errors[$label] = $response->status().' '.Str::limit($response->body(), 200);
-            } catch (Throwable $e) {
-                $errors[$label] = $e->getMessage();
-            }
+            throw new RuntimeException('Upload via Worker gagal ('.$response->status().'): '.Str::limit($response->body(), 200));
         }
 
-        Log::error('Semua strategi upload Worker gagal', ['errors' => $errors, 'worker_url' => $workerUrl]);
-
-        throw new RuntimeException('Upload via Worker gagal: '.json_encode($errors, JSON_UNESCAPED_SLASHES));
-    }
-
-    /**
-     * @return array<string, callable(): \Illuminate\Http\Client\Response>
-     */
-    private function workerAttempts(string $workerUrl, UploadedFile $file, string $path): array
-    {
-        $base = rtrim($workerUrl, '/');
-        $contents = file_get_contents($file->getRealPath());
-        $mime = $file->getClientMimeType();
-
-        $multipart = fn (): PendingRequest => Http::asMultipart()
-            ->timeout(60)
-            ->attach('file', $contents, basename($path));
-
-        $putRaw = fn (): PendingRequest => Http::withBody($contents, $mime)->timeout(60);
+        $data = $response->json() ?? [];
+        $publicUrl = $data['publicUrl'] ?? $this->publicUrl($path);
 
         return [
-            'PUT /{path} (raw body)' => fn () => $putRaw()->put($base.'/'.ltrim($path, '/')),
-            'POST /{path} (multipart)' => fn () => $multipart()->post($base.'/'.ltrim($path, '/'), ['key' => $path]),
-            'POST /upload?key={path} (multipart)' => fn () => $multipart()->post($base.'/upload?key='.urlencode($path), ['key' => $path]),
-            'POST / (multipart with key)' => fn () => $multipart()->post($base, ['key' => $path]),
-            'PUT /upload/{path} (raw)' => fn () => $putRaw()->put($base.'/upload/'.ltrim($path, '/')),
+            'file_name' => $file->getClientOriginalName(),
+            'stored_name' => basename($path),
+            'path' => $path,
+            'url' => $publicUrl,
+            'mime_type' => $file->getClientMimeType(),
+            'file_type' => $this->fileType($file),
+            'size' => $file->getSize(),
+            'storage_disk' => 'r2-worker',
         ];
     }
 
@@ -95,16 +70,27 @@ class CloudflareR2Service
             throw new RuntimeException('Upload file gagal disimpan.');
         }
 
-        return array_filter([
+        return [
             'file_name' => $file->getClientOriginalName(),
             'stored_name' => basename($path),
             'path' => $path,
-            'url' => $disk === 'r2' ? $this->publicUrl($path) : Storage::disk($disk)->url($path),
+            'url' => $this->urlFor($disk, $path),
             'mime_type' => $file->getClientMimeType(),
             'file_type' => $this->fileType($file),
             'size' => $file->getSize(),
             'storage_disk' => $disk,
-        ], fn ($value) => $value !== null);
+        ];
+    }
+
+    private function urlFor(string $disk, string $path): ?string
+    {
+        if ($disk === 'r2') {
+            return $this->publicUrl($path);
+        }
+
+        $diskInstance = Storage::disk($disk);
+
+        return method_exists($diskInstance, 'url') ? $diskInstance->url($path) : null;
     }
 
     private function publicUrl(string $path): ?string
