@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\FirebaseService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use Throwable;
 
@@ -48,21 +49,37 @@ class TargetController extends Controller
             ->values()
             ->all();
 
+        $payload = [
+            'title' => $validated['title'],
+            'mode' => $validated['mode'],
+            'description' => $validated['description'] ?? null,
+            'checklist_items' => $items,
+            'status' => 'active',
+            'created_by' => (string) $request->user()->id,
+        ];
+
+        if ($validated['mode'] === 'pertemuan') {
+            $payload['meeting_no'] = (int) ($validated['meeting_no'] ?? 1);
+            if (! empty($validated['target_date'])) {
+                $payload['target_date'] = $validated['target_date'];
+            }
+        } else {
+            $payload['week_no'] = (int) ($validated['week_no'] ?? 1);
+            if (! empty($validated['week_start'])) {
+                $payload['week_start'] = $validated['week_start'];
+            }
+            if (! empty($validated['week_end'])) {
+                $payload['week_end'] = $validated['week_end'];
+            }
+        }
+
+        $payload = array_filter($payload, fn ($value) => $value !== null);
+
         try {
-            $firebase->push('targets', [
-                'title' => $validated['title'],
-                'mode' => $validated['mode'],
-                'meeting_no' => $validated['mode'] === 'pertemuan' ? (int) ($validated['meeting_no'] ?? 1) : null,
-                'week_no' => $validated['mode'] === 'mingguan' ? (int) ($validated['week_no'] ?? 1) : null,
-                'target_date' => $validated['target_date'] ?? null,
-                'week_start' => $validated['mode'] === 'mingguan' ? ($validated['week_start'] ?? null) : null,
-                'week_end' => $validated['mode'] === 'mingguan' ? ($validated['week_end'] ?? null) : null,
-                'description' => $validated['description'] ?? null,
-                'checklist_items' => $items,
-                'status' => 'active',
-                'created_by' => (string) $request->user()->id,
-            ]);
+            $firebase->push('targets', $payload);
         } catch (Throwable $e) {
+            Log::error('Gagal simpan target', ['payload' => $payload, 'message' => $e->getMessage()]);
+
             return back()
                 ->withInput()
                 ->withErrors(['title' => 'Gagal menyimpan target: '.$e->getMessage()]);
