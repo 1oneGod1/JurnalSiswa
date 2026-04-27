@@ -38,10 +38,40 @@
                         @php $target = $targets->get($targetId); @endphp
                         <div class="check-card">
                             <span class="check-box {{ $checked ? 'done' : '' }}">{!! $checked ? '&#10003;' : '' !!}</span>
-                            <span>
-                                <strong>{{ is_array($target) ? ($target['title'] ?? $targetId) : $targetId }}</strong>
-                                @if (is_array($target) && ! empty($target['description']))
-                                    <span class="muted" style="display: block; margin-top: 2px;">{{ $target['description'] }}</span>
+                            <span style="display: block; width: 100%;">
+                                @if (is_array($target))
+                                    <span style="display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; flex-wrap: wrap;">
+                                        <span>
+                                            @if (($target['mode'] ?? 'pertemuan') === 'mingguan')
+                                                <span class="badge accent">Minggu {{ $target['week_no'] ?? '-' }}</span>
+                                                @if (! empty($target['week_start']) && ! empty($target['week_end']))
+                                                    <span class="badge" style="margin-left: 6px;">{{ \Carbon\Carbon::parse($target['week_start'])->format('d M') }} &ndash; {{ \Carbon\Carbon::parse($target['week_end'])->format('d M Y') }}</span>
+                                                @endif
+                                            @else
+                                                <span class="badge accent">Pertemuan {{ $target['meeting_no'] ?? '-' }}</span>
+                                                @if (! empty($target['target_date']))
+                                                    <span class="badge" style="margin-left: 6px;">{{ \Carbon\Carbon::parse($target['target_date'])->format('d M Y') }}</span>
+                                                @endif
+                                            @endif
+                                        </span>
+                                        <span class="badge {{ ($target['status'] ?? 'active') === 'active' ? 'ok' : '' }}">{{ $target['status'] ?? 'active' }}</span>
+                                    </span>
+                                    <strong style="display: block; margin-top: 10px;">{{ $target['title'] ?? $targetId }}</strong>
+                                    @if (! empty($target['description']))
+                                        <span class="muted" style="display: block; margin-top: 4px;">{{ $target['description'] }}</span>
+                                    @endif
+                                    @if (! empty($target['checklist_items']))
+                                        <span class="form-grid" style="display: grid; gap: 8px; margin-top: 12px;">
+                                            @foreach ($target['checklist_items'] as $item)
+                                                <span style="display: flex; gap: 8px; align-items: flex-start;">
+                                                    <span class="check-box" style="margin-top: 1px;"></span>
+                                                    <span>{{ $item }}</span>
+                                                </span>
+                                            @endforeach
+                                        </span>
+                                    @endif
+                                @else
+                                    <strong>{{ $targetId }}</strong>
                                 @endif
                             </span>
                         </div>
