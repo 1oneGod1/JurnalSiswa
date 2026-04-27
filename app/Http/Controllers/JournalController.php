@@ -217,8 +217,11 @@ class JournalController extends Controller
             'group_id' => [$requiresGroup ? 'required' : 'nullable', 'string', 'max:80'],
             'meeting_no' => ['required', 'integer', 'min:1', 'max:99'],
             'journal_date' => ['required', 'date'],
-            'target_checklist' => ['array'],
-            'target_checklist.*' => ['string'],
+            'target_checklist' => ['nullable', 'array'],
+            'target_checklist.*' => ['nullable', 'array'],
+            'target_checklist.*.completed' => ['nullable', 'boolean'],
+            'target_checklist.*.items' => ['nullable', 'array'],
+            'target_checklist.*.items.*' => ['string', 'max:500'],
             'target_vs_realization' => ['nullable', 'string', 'max:1200'],
             'progress_today' => ['required', 'string', 'max:2000'],
             'data_result' => ['nullable', 'string', 'max:2000'],
@@ -238,7 +241,26 @@ class JournalController extends Controller
     private function journalPayload(array $validated, Request $request, string $groupId): array
     {
         $checklist = collect($validated['target_checklist'] ?? [])
-            ->mapWithKeys(fn ($value, $key) => [$key => true])
+            ->map(function ($value) {
+                if ($value === true || $value === 1 || $value === '1') {
+                    return true;
+                }
+
+                if (! is_array($value)) {
+                    return null;
+                }
+
+                $items = collect($value['items'] ?? [])
+                    ->filter(fn ($item) => filled($item))
+                    ->map(fn ($item) => (string) $item)
+                    ->all();
+
+                return array_filter([
+                    'completed' => filter_var($value['completed'] ?? false, FILTER_VALIDATE_BOOLEAN) ?: null,
+                    'items' => empty($items) ? null : $items,
+                ], fn ($item) => $item !== null);
+            })
+            ->filter(fn ($value) => $value === true || (is_array($value) && $value !== []))
             ->all();
 
         return [

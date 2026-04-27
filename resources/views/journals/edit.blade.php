@@ -41,8 +41,7 @@
             <h2 class="card-title">Daftar target</h2>
             <div class="form-grid" style="gap: 10px; margin-top: 12px;">
                 @forelse ($targets as $target)
-                    <label class="check-card" style="align-items: flex-start;">
-                        <input type="checkbox" name="target_checklist[{{ $target['id'] }}]" value="1" @checked((bool) data_get($checkedTargets, $target['id'])) style="margin-top: 7px;">
+                    <div class="check-card" style="align-items: flex-start;">
                         <span style="display: block; width: 100%;">
                             <span style="display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; flex-wrap: wrap;">
                                 <span>
@@ -67,15 +66,22 @@
                             @if (! empty($target['checklist_items']))
                                 <span class="form-grid" style="display: grid; gap: 8px; margin-top: 12px;">
                                     @foreach ($target['checklist_items'] as $item)
-                                        <span style="display: flex; gap: 8px; align-items: flex-start;">
-                                            <span class="check-box" style="margin-top: 1px;"></span>
+                                        @php $itemChecked = data_get($checkedTargets, $target['id']) === true || data_get($checkedTargets, $target['id'].'.items.'.$loop->index); @endphp
+                                        <label style="display: flex; gap: 8px; align-items: flex-start; cursor: pointer;">
+                                            <input type="checkbox" name="target_checklist[{{ $target['id'] }}][items][{{ $loop->index }}]" value="{{ $item }}" @checked($itemChecked) style="margin-top: 2px;">
                                             <span>{{ $item }}</span>
-                                        </span>
+                                        </label>
                                     @endforeach
                                 </span>
+                            @else
+                                @php $targetChecked = data_get($checkedTargets, $target['id']) === true || data_get($checkedTargets, $target['id'].'.completed'); @endphp
+                                <label style="display: flex; gap: 8px; align-items: flex-start; cursor: pointer; margin-top: 12px;">
+                                    <input type="checkbox" name="target_checklist[{{ $target['id'] }}][completed]" value="1" @checked($targetChecked) style="margin-top: 2px;">
+                                    <span>Target ini selesai.</span>
+                                </label>
                             @endif
                         </span>
-                    </label>
+                    </div>
                 @empty
                     <p class="check-card muted">Belum ada target aktif.</p>
                 @endforelse

@@ -35,9 +35,12 @@
                 <h2 class="card-title">Checklist target</h2>
                 <div class="form-grid" style="gap: 8px; margin-top: 12px;">
                     @forelse (($journal['target_checklist'] ?? []) as $targetId => $checked)
-                        @php $target = $targets->get($targetId); @endphp
+                        @php
+                            $target = $targets->get($targetId);
+                            $targetChecked = $checked === true || (is_array($checked) && (! empty($checked['completed']) || ! empty($checked['items'])));
+                        @endphp
                         <div class="check-card">
-                            <span class="check-box {{ $checked ? 'done' : '' }}">{!! $checked ? '&#10003;' : '' !!}</span>
+                            <span class="check-box {{ $targetChecked ? 'done' : '' }}">{!! $targetChecked ? '&#10003;' : '' !!}</span>
                             <span style="display: block; width: 100%;">
                                 @if (is_array($target))
                                     <span style="display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; flex-wrap: wrap;">
@@ -63,11 +66,17 @@
                                     @if (! empty($target['checklist_items']))
                                         <span class="form-grid" style="display: grid; gap: 8px; margin-top: 12px;">
                                             @foreach ($target['checklist_items'] as $item)
+                                                @php $itemChecked = $checked === true || (is_array($checked) && data_get($checked, 'items.'.$loop->index)); @endphp
                                                 <span style="display: flex; gap: 8px; align-items: flex-start;">
-                                                    <span class="check-box" style="margin-top: 1px;"></span>
+                                                    <span class="check-box {{ $itemChecked ? 'done' : '' }}" style="margin-top: 1px;">{!! $itemChecked ? '&#10003;' : '' !!}</span>
                                                     <span>{{ $item }}</span>
                                                 </span>
                                             @endforeach
+                                        </span>
+                                    @elseif ($targetChecked)
+                                        <span style="display: flex; gap: 8px; align-items: flex-start; margin-top: 12px;">
+                                            <span class="check-box done" style="margin-top: 1px;">&#10003;</span>
+                                            <span>Target ini selesai.</span>
                                         </span>
                                     @endif
                                 @else
