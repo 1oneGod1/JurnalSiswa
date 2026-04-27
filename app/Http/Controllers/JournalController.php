@@ -160,6 +160,37 @@ class JournalController extends Controller
             ->with('status', 'Jurnal berhasil diperbarui.');
     }
 
+    public function destroy(string $journal, FirebaseService $firebase): RedirectResponse
+    {
+        $record = $firebase->find('journals', $journal);
+        abort_if(! $record, 404);
+        $this->authorizeJournal($record);
+
+        try {
+            foreach (collect($firebase->all('documentations'))->where('journal_id', $journal) as $doc) {
+                if (! empty($doc['id'])) {
+                    $firebase->delete('documentations', $doc['id']);
+                }
+            }
+
+            foreach (collect($firebase->all('feedbacks'))->where('journal_id', $journal) as $fb) {
+                if (! empty($fb['id'])) {
+                    $firebase->delete('feedbacks', $fb['id']);
+                }
+            }
+
+            $firebase->delete('journals', $journal);
+        } catch (Throwable $e) {
+            Log::error('Gagal hapus jurnal', ['journal_id' => $journal, 'message' => $e->getMessage()]);
+
+            return back()->withErrors(['journal' => 'Gagal menghapus jurnal: '.$e->getMessage()]);
+        }
+
+        return redirect()
+            ->route('journals.index')
+            ->with('status', 'Jurnal dihapus.');
+    }
+
     private function authorizeJournal(array $journal): void
     {
         $user = auth()->user();
