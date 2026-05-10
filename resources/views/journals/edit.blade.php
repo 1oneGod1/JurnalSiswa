@@ -9,6 +9,7 @@
 
     @php
         $checkedTargets = old('target_checklist', $journal['target_checklist'] ?? []);
+        $memberContributions = old('member_contributions', $journal['member_contributions'] ?? []);
     @endphp
 
     <form action="{{ route('journals.update', $journal['id']) }}" method="POST" enctype="multipart/form-data" class="card form-card form-grid" style="max-width: 920px;">
@@ -88,6 +89,42 @@
             </div>
         </section>
 
+        <section>
+            <h2 class="card-title">Kontribusi anggota</h2>
+            <p class="page-subtitle">Perbarui pekerjaan tiap siswa dan upload foto/screenshot bukti baru jika diperlukan. Maksimal 5 MB per gambar.</p>
+            <div class="form-grid" style="gap: 10px; margin-top: 12px;">
+                @foreach ($studentsByGroup as $groupId => $students)
+                    @foreach ($students as $student)
+                        @php
+                            $selectedGroup = old('group_id', $journal['group_id'] ?? current_user()->group_id);
+                            $isVisible = $selectedGroup === $groupId;
+                            $contribution = data_get($memberContributions, $student['id'], []);
+                        @endphp
+                        <div class="check-card contribution-card" data-contribution-group="{{ $groupId }}" style="{{ $isVisible ? '' : 'display:none;' }}">
+                            <span style="display: block; width: 100%;">
+                                <strong>{{ $student['name'] ?? 'Siswa' }}</strong>
+                                <input type="hidden" name="member_contributions[{{ $student['id'] }}][student_id]" value="{{ $student['id'] }}">
+                                <input type="hidden" name="member_contributions[{{ $student['id'] }}][student_name]" value="{{ $student['name'] ?? 'Siswa' }}">
+                                <input type="hidden" name="member_contributions[{{ $student['id'] }}][photo_documentation_id]" value="{{ $contribution['photo_documentation_id'] ?? '' }}">
+                                <div class="field" style="margin-top: 10px;">
+                                    <label for="contribution_{{ $student['id'] }}">Kontribusi</label>
+                                    <textarea class="input" id="contribution_{{ $student['id'] }}" name="member_contributions[{{ $student['id'] }}][contribution]" rows="2" placeholder="Contoh: memasang sensor, menulis laporan, dokumentasi testing">{{ $contribution['contribution'] ?? '' }}</textarea>
+                                </div>
+                                <div class="field" style="margin-bottom: 0;">
+                                    <label for="contribution_image_{{ $student['id'] }}">Foto / screenshot bukti</label>
+                                    <input class="input file-input" id="contribution_image_{{ $student['id'] }}" name="contribution_images[{{ $student['id'] }}]" type="file" accept="image/jpeg,image/png,image/webp">
+                                    @if (! empty($contribution['photo_documentation_id']))
+                                        <a class="soft-link" href="{{ route('documentations.show', $contribution['photo_documentation_id']) }}" target="_blank">Lihat bukti tersimpan</a>
+                                    @endif
+                                </div>
+                            </span>
+                        </div>
+                    @endforeach
+                @endforeach
+                <p class="check-card muted" data-contribution-empty>Pilih kelompok dulu untuk menampilkan daftar anggota.</p>
+            </div>
+        </section>
+
         @foreach ([
             'target_vs_realization' => ['Target vs realisasi', 'Apa target hari ini dan apa yang selesai?'],
             'progress_today' => ['Progress hari ini', 'Tuliskan progress kelompok hari ini.'],
@@ -133,4 +170,34 @@
             <button type="submit" class="btn">Simpan Perubahan</button>
         </div>
     </form>
+
+    <script>
+        (() => {
+            const groupSelect = document.getElementById('group_id');
+            const cards = document.querySelectorAll('[data-contribution-group]');
+            const emptyState = document.querySelector('[data-contribution-empty]');
+            const fallbackGroup = '{{ old('group_id', $journal['group_id'] ?? current_user()->group_id) }}';
+
+            if (cards.length === 0) {
+                return;
+            }
+
+            const syncContributionCards = () => {
+                const groupId = groupSelect ? groupSelect.value : fallbackGroup;
+                let visible = 0;
+                cards.forEach((card) => {
+                    const show = card.dataset.contributionGroup === groupId;
+                    card.style.display = show ? '' : 'none';
+                    if (show) visible += 1;
+                });
+
+                if (emptyState) {
+                    emptyState.style.display = visible === 0 ? '' : 'none';
+                }
+            };
+
+            groupSelect?.addEventListener('change', syncContributionCards);
+            syncContributionCards();
+        })();
+    </script>
 </x-layouts.app>

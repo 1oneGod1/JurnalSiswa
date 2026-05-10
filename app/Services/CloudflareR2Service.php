@@ -21,6 +21,16 @@ class CloudflareR2Service
         return $this->uploadToFirebaseStorage($file, $path);
     }
 
+    public function storeContributionImage(UploadedFile $file, string $groupId, string $journalId, string $studentId): array
+    {
+        $directory = 'documentations/'.$groupId.'/'.$journalId.'/contributions';
+        $filename = now()->format('YmdHis').'-'.Str::slug($studentId).'-'.Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME));
+        $extension = $file->getClientOriginalExtension();
+        $filename = trim($filename, '-').($extension ? '.'.$extension : '');
+
+        return $this->uploadToFirebaseStorage($file, $directory.'/'.$filename);
+    }
+
     private function uploadToFirebaseStorage(UploadedFile $file, string $path): array
     {
         $bucket = (string) config('services.firebase.storage_bucket', 'jurnalsiswa-eb7e4.firebasestorage.app');

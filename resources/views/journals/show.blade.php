@@ -89,6 +89,42 @@
                     @endforelse
                 </div>
             </section>
+
+            <section style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
+                <h2 class="card-title">Kontribusi anggota</h2>
+                <div class="form-grid" style="gap: 10px; margin-top: 12px;">
+                    @forelse (($journal['member_contributions'] ?? []) as $contribution)
+                        @php
+                            $proof = ! empty($contribution['photo_documentation_id'])
+                                ? $contributionDocumentations->get($contribution['photo_documentation_id'])
+                                : null;
+                        @endphp
+                        <div class="check-card contribution-detail">
+                            <span style="display: block; width: 100%;">
+                                <div class="row-top">
+                                    <div>
+                                        <h3 class="row-title">{{ $contribution['student_name'] ?? 'Siswa' }}</h3>
+                                        <p class="row-subtitle">{{ $contribution['student_id'] ?? '' }}</p>
+                                    </div>
+                                    @if ($proof)
+                                        <span class="badge ok">Bukti ada</span>
+                                    @else
+                                        <span class="badge err">Belum ada bukti</span>
+                                    @endif
+                                </div>
+                                <p style="margin: 10px 0 0; color: var(--ink-2); white-space: pre-line;">{{ $contribution['contribution'] ?? 'Belum ada catatan kontribusi.' }}</p>
+                                @if ($proof)
+                                    <a href="{{ route('documentations.show', $proof['id']) }}" target="_blank" class="contribution-proof">
+                                        <img src="{{ route('documentations.show', $proof['id']) }}" alt="Bukti kontribusi {{ $contribution['student_name'] ?? 'siswa' }}" loading="lazy">
+                                    </a>
+                                @endif
+                            </span>
+                        </div>
+                    @empty
+                        <p class="muted">Belum ada kontribusi anggota yang dicatat.</p>
+                    @endforelse
+                </div>
+            </section>
         </article>
 
         <aside class="section-grid">

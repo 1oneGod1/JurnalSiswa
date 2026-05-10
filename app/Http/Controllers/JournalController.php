@@ -30,9 +30,16 @@ class JournalController extends Controller
 
     public function create(FirebaseService $firebase): View
     {
+        $studentsByGroup = collect($firebase->all('students'))
+            ->sortBy('name')
+            ->groupBy('group_id');
+        $journals = collect($firebase->all('journals'));
+
         return view('journals.create', [
             'groups' => collect($firebase->all('groups'))->sortBy('name')->values(),
             'targets' => collect($firebase->all('targets'))->where('status', 'active')->sortBy('meeting_no')->values(),
+            'studentsByGroup' => $studentsByGroup,
+            'historicalChecklistByGroup' => $this->historicalChecklistByGroup($journals),
         ]);
     }
 
@@ -41,6 +48,7 @@ class JournalController extends Controller
         $user = current_user();
 
         $validated = $request->validate($this->journalRules($user->isTeacher()));
+        $this->validateContributionProofs($request, $validated);
 
         $groupId = $user->isTeacher() ? $validated['group_id'] : $user->group_id;
         abort_if(blank($groupId), 422, 'Akun siswa belum tersambung ke kelompok.');
@@ -65,6 +73,7 @@ class JournalController extends Controller
 
         try {
             $this->uploadDocumentations($request, $firebase, $storage, $groupId, $journalId);
+            $this->uploadContributionImages($request, $firebase, $storage, $groupId, $journalId, $payload['member_contributions'] ?? []);
         } catch (Throwable $e) {
             Log::error('Gagal upload dokumentasi', [
                 'message' => $e->getMessage(),
@@ -93,7 +102,8 @@ class JournalController extends Controller
             'journal' => $record,
             'group' => $groups->get($record['group_id']),
             'targets' => collect($firebase->all('targets'))->keyBy('id'),
-            'documentations' => collect($firebase->all('documentations'))->where('journal_id', $journal)->values(),
+            'documentations' => collect($firebase->all('documentations'))->where('journal_id', $journal)->where('documentation_kind', '!=', 'member_contribution')->values(),
+            'contributionDocumentations' => collect($firebase->all('documentations'))->where('journal_id', $journal)->where('documentation_kind', 'member_contribution')->keyBy('id'),
             'feedbacks' => collect($firebase->all('feedbacks'))->where('journal_id', $journal)->sortByDesc('created_at')->values(),
             'comments' => collect($firebase->all('journal_comments'))->where('journal_id', $journal)->sortBy('created_at')->values(),
         ]);
@@ -109,7 +119,8 @@ class JournalController extends Controller
             'journal' => $record,
             'groups' => collect($firebase->all('groups'))->sortBy('name')->values(),
             'targets' => collect($firebase->all('targets'))->where('status', 'active')->sortBy('meeting_no')->values(),
-            'documentations' => collect($firebase->all('documentations'))->where('journal_id', $journal)->values(),
+            'documentations' => collect($firebase->all('documentations'))->where('journal_id', $journal)->where('documentation_kind', '!=', 'member_contribution')->values(),
+            'studentsByGroup' => collect($firebase->all('students'))->sortBy('name')->groupBy('group_id'),
         ]);
     }
 
@@ -121,6 +132,7 @@ class JournalController extends Controller
 
         $user = current_user();
         $validated = $request->validate($this->journalRules($user->isTeacher()));
+        $this->validateContributionProofs($request, $validated);
         $groupId = $user->isTeacher() ? $validated['group_id'] : ($record['group_id'] ?? $user->group_id);
         abort_if(blank($groupId), 422, 'Akun siswa belum tersambung ke kelompok.');
 
@@ -145,6 +157,7 @@ class JournalController extends Controller
 
         try {
             $this->uploadDocumentations($request, $firebase, $storage, $groupId, $journal);
+            $this->uploadContributionImages($request, $firebase, $storage, $groupId, $journal, $payload['member_contributions'] ?? []);
         } catch (Throwable $e) {
             Log::error('Gagal upload dokumentasi saat update jurnal', [
                 'message' => $e->getMessage(),
@@ -277,6 +290,13 @@ class JournalController extends Controller
             'target_checklist.*.completed' => ['nullable', 'boolean'],
             'target_checklist.*.items' => ['nullable', 'array'],
             'target_checklist.*.items.*' => ['string', 'max:500'],
+            'member_contributions' => ['nullable', 'array'],
+            'member_contributions.*.student_id' => ['required_with:member_contributions', 'string', 'max:120'],
+            'member_contributions.*.student_name' => ['required_with:member_contributions', 'string', 'max:120'],
+            'member_contributions.*.contribution' => ['nullable', 'string', 'max:1000'],
+            'member_contributions.*.photo_documentation_id' => ['nullable', 'string', 'max:120'],
+            'contribution_images' => ['nullable', 'array'],
+            'contribution_images.*' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'target_vs_realization' => ['nullable', 'string', 'max:1200'],
             'progress_today' => ['required', 'string', 'max:2000'],
             'data_result' => ['nullable', 'string', 'max:2000'],
@@ -323,6 +343,7 @@ class JournalController extends Controller
             'meeting_no' => (int) $validated['meeting_no'],
             'journal_date' => $validated['journal_date'],
             'target_checklist' => empty($checklist) ? null : $checklist,
+            'member_contributions' => $this->memberContributionPayload($validated['member_contributions'] ?? []),
             'target_vs_realization' => $validated['target_vs_realization'] ?? null,
             'progress_today' => $validated['progress_today'],
             'data_result' => $validated['data_result'] ?? null,
@@ -331,6 +352,45 @@ class JournalController extends Controller
             'insight' => $validated['insight'] ?? null,
             'help_request' => $request->boolean('help_request'),
         ];
+    }
+
+    private function historicalChecklistByGroup($journals): array
+    {
+        return $journals
+            ->groupBy('group_id')
+            ->map(function ($groupJournals) {
+                return $groupJournals
+                    ->reduce(function (array $carry, array $journal) {
+                        foreach (($journal['target_checklist'] ?? []) as $targetId => $checked) {
+                            if ($checked === true || $checked === 1 || $checked === '1') {
+                                $carry[$targetId] = true;
+
+                                continue;
+                            }
+
+                            if (! is_array($checked)) {
+                                continue;
+                            }
+
+                            if (filter_var($checked['completed'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+                                $carry[$targetId] = true;
+
+                                continue;
+                            }
+
+                            foreach (array_keys($checked['items'] ?? []) as $index) {
+                                if (($carry[$targetId] ?? null) === true) {
+                                    continue;
+                                }
+
+                                $carry[$targetId]['items'][(string) $index] = true;
+                            }
+                        }
+
+                        return $carry;
+                    }, []);
+            })
+            ->all();
     }
 
     private function uploadDocumentations(Request $request, FirebaseService $firebase, CloudflareR2Service $storage, string $groupId, string $journalId): void
@@ -343,6 +403,77 @@ class JournalController extends Controller
                 'group_id' => $groupId,
                 'journal_id' => $journalId,
                 'uploaded_by' => (string) current_user()->id,
+            ]);
+        }
+    }
+
+    private function memberContributionPayload(array $contributions): array
+    {
+        return collect($contributions)
+            ->mapWithKeys(function ($item, $studentId) {
+                if (! is_array($item)) {
+                    return [];
+                }
+
+                $id = (string) ($item['student_id'] ?? $studentId);
+                $payload = array_filter([
+                    'student_id' => $id,
+                    'student_name' => $item['student_name'] ?? null,
+                    'contribution' => filled($item['contribution'] ?? null) ? trim((string) $item['contribution']) : null,
+                    'photo_documentation_id' => $item['photo_documentation_id'] ?? null,
+                ], fn ($value) => $value !== null && $value !== '');
+
+                return $id !== '' ? [$id => $payload] : [];
+            })
+            ->filter(fn ($item) => ! empty($item['contribution']) || ! empty($item['photo_documentation_id']))
+            ->all();
+    }
+
+    private function validateContributionProofs(Request $request, array $validated): void
+    {
+        foreach (($validated['member_contributions'] ?? []) as $studentId => $contribution) {
+            if (! is_array($contribution) || blank($contribution['contribution'] ?? null)) {
+                continue;
+            }
+
+            if ($request->hasFile('contribution_images.'.$studentId) || filled($contribution['photo_documentation_id'] ?? null)) {
+                continue;
+            }
+
+            validator([], [])->after(function ($validator) use ($studentId) {
+                $validator->errors()->add(
+                    'contribution_images.'.$studentId,
+                    'Setiap kontribusi anggota wajib disertai foto atau screenshot bukti maksimal 5 MB.'
+                );
+            })->validate();
+        }
+    }
+
+    private function uploadContributionImages(Request $request, FirebaseService $firebase, CloudflareR2Service $storage, string $groupId, string $journalId, array $contributions): void
+    {
+        foreach ($request->file('contribution_images', []) as $studentId => $file) {
+            if (! $file) {
+                continue;
+            }
+
+            $studentId = (string) $studentId;
+            $metadata = $storage->storeContributionImage($file, $groupId, $journalId, $studentId);
+            $documentationId = $firebase->push('documentations', [
+                ...$metadata,
+                'group_id' => $groupId,
+                'journal_id' => $journalId,
+                'documentation_kind' => 'member_contribution',
+                'student_id' => $studentId,
+                'student_name' => $contributions[$studentId]['student_name'] ?? null,
+                'uploaded_by' => (string) current_user()->id,
+            ]);
+
+            $contributions[$studentId]['photo_documentation_id'] = $documentationId;
+        }
+
+        if ($request->hasFile('contribution_images')) {
+            $firebase->update('journals', $journalId, [
+                'member_contributions' => $contributions,
             ]);
         }
     }

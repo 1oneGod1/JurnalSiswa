@@ -7,8 +7,14 @@
         </div>
     </div>
 
+    @php
+        $hasOldChecklist = old('_target_checklist_seen') !== null;
+        $studentGroupId = current_user()->group_id;
+    @endphp
+
     <form action="{{ route('journals.store') }}" method="POST" enctype="multipart/form-data" class="card form-card form-grid" style="max-width: 920px;">
         @csrf
+        <input type="hidden" name="_target_checklist_seen" value="1">
         <div class="grid-3">
             @if (current_user()->isTeacher())
                 <div class="field">
@@ -33,6 +39,7 @@
 
         <section>
             <h2 class="card-title">Daftar target</h2>
+            <p class="page-subtitle">Item yang sudah pernah dicentang di jurnal kelompok akan otomatis tercentang sebagai lanjutan, tanpa mengubah jurnal lama.</p>
             <div class="form-grid" style="gap: 10px; margin-top: 12px;">
                 @forelse ($targets as $target)
                     <div class="check-card" style="align-items: flex-start;">
@@ -60,15 +67,49 @@
                             @if (! empty($target['checklist_items']))
                                 <span class="form-grid" style="display: grid; gap: 8px; margin-top: 12px;">
                                     @foreach ($target['checklist_items'] as $item)
+                                        @php
+                                            $historicalGroups = collect($historicalChecklistByGroup)
+                                                ->filter(fn ($history) => data_get($history, $target['id']) === true || data_get($history, $target['id'].'.items.'.$loop->index))
+                                                ->keys()
+                                                ->values();
+                                            $isHistoricallyChecked = $studentGroupId && $historicalGroups->contains($studentGroupId);
+                                            $isChecked = $hasOldChecklist
+                                                ? (bool) old("target_checklist.{$target['id']}.items.{$loop->index}")
+                                                : $isHistoricallyChecked;
+                                        @endphp
                                         <label style="display: flex; gap: 8px; align-items: flex-start; cursor: pointer;">
-                                            <input type="checkbox" name="target_checklist[{{ $target['id'] }}][items][{{ $loop->index }}]" value="{{ $item }}" @checked(old("target_checklist.{$target['id']}.items.{$loop->index}")) style="margin-top: 2px;">
+                                            <input
+                                                type="checkbox"
+                                                name="target_checklist[{{ $target['id'] }}][items][{{ $loop->index }}]"
+                                                value="{{ $item }}"
+                                                data-historical-groups='@json($historicalGroups)'
+                                                @checked($isChecked)
+                                                style="margin-top: 2px;"
+                                            >
                                             <span>{{ $item }}</span>
                                         </label>
                                     @endforeach
                                 </span>
                             @else
+                                @php
+                                    $historicalGroups = collect($historicalChecklistByGroup)
+                                        ->filter(fn ($history) => data_get($history, $target['id']) === true)
+                                        ->keys()
+                                        ->values();
+                                    $isHistoricallyChecked = $studentGroupId && $historicalGroups->contains($studentGroupId);
+                                    $isChecked = $hasOldChecklist
+                                        ? (bool) old("target_checklist.{$target['id']}.completed")
+                                        : $isHistoricallyChecked;
+                                @endphp
                                 <label style="display: flex; gap: 8px; align-items: flex-start; cursor: pointer; margin-top: 12px;">
-                                    <input type="checkbox" name="target_checklist[{{ $target['id'] }}][completed]" value="1" @checked(old("target_checklist.{$target['id']}.completed")) style="margin-top: 2px;">
+                                    <input
+                                        type="checkbox"
+                                        name="target_checklist[{{ $target['id'] }}][completed]"
+                                        value="1"
+                                        data-historical-groups='@json($historicalGroups)'
+                                        @checked($isChecked)
+                                        style="margin-top: 2px;"
+                                    >
                                     <span>Target ini selesai.</span>
                                 </label>
                             @endif
@@ -77,6 +118,37 @@
                 @empty
                     <p class="check-card muted">Belum ada target aktif.</p>
                 @endforelse
+            </div>
+        </section>
+
+        <section>
+            <h2 class="card-title">Kontribusi anggota</h2>
+            <p class="page-subtitle">Tuliskan pekerjaan tiap siswa dan upload foto/screenshot bukti. Maksimal 5 MB per gambar.</p>
+            <div class="form-grid" style="gap: 10px; margin-top: 12px;">
+                @foreach ($studentsByGroup as $groupId => $students)
+                    @foreach ($students as $student)
+                        @php
+                            $isVisible = current_user()->isStudent() && current_user()->group_id === $groupId;
+                            $oldContribution = old("member_contributions.{$student['id']}.contribution");
+                        @endphp
+                        <div class="check-card contribution-card {{ $isVisible ? '' : (current_user()->isTeacher() ? '' : 'hidden') }}" data-contribution-group="{{ $groupId }}" style="{{ current_user()->isTeacher() ? 'display:none;' : '' }}">
+                            <span style="display: block; width: 100%;">
+                                <strong>{{ $student['name'] ?? 'Siswa' }}</strong>
+                                <input type="hidden" name="member_contributions[{{ $student['id'] }}][student_id]" value="{{ $student['id'] }}">
+                                <input type="hidden" name="member_contributions[{{ $student['id'] }}][student_name]" value="{{ $student['name'] ?? 'Siswa' }}">
+                                <div class="field" style="margin-top: 10px;">
+                                    <label for="contribution_{{ $student['id'] }}">Kontribusi</label>
+                                    <textarea class="input" id="contribution_{{ $student['id'] }}" name="member_contributions[{{ $student['id'] }}][contribution]" rows="2" placeholder="Contoh: memasang sensor, menulis laporan, dokumentasi testing">{{ $oldContribution }}</textarea>
+                                </div>
+                                <div class="field" style="margin-bottom: 0;">
+                                    <label for="contribution_image_{{ $student['id'] }}">Foto / screenshot bukti</label>
+                                    <input class="input file-input" id="contribution_image_{{ $student['id'] }}" name="contribution_images[{{ $student['id'] }}]" type="file" accept="image/jpeg,image/png,image/webp">
+                                </div>
+                            </span>
+                        </div>
+                    @endforeach
+                @endforeach
+                <p class="check-card muted" data-contribution-empty style="{{ current_user()->isTeacher() ? '' : 'display:none;' }}">Pilih kelompok dulu untuk menampilkan daftar anggota.</p>
             </div>
         </section>
 
@@ -111,4 +183,57 @@
             <button type="submit" class="btn">Simpan Jurnal</button>
         </div>
     </form>
+
+    <script>
+        (() => {
+            const groupSelect = document.getElementById('group_id');
+            const cards = document.querySelectorAll('[data-contribution-group]');
+            const emptyState = document.querySelector('[data-contribution-empty]');
+            const historicalCheckboxes = document.querySelectorAll('[data-historical-groups]');
+            const hasOldChecklist = @json($hasOldChecklist);
+            const fallbackGroup = @json($studentGroupId);
+
+            if (cards.length === 0 && historicalCheckboxes.length === 0) {
+                return;
+            }
+
+            const syncContributionCards = () => {
+                const selectedGroup = groupSelect ? groupSelect.value : fallbackGroup;
+                let visible = 0;
+                cards.forEach((card) => {
+                    const show = card.dataset.contributionGroup === selectedGroup;
+                    card.style.display = show ? '' : 'none';
+                    if (show) visible += 1;
+                });
+
+                if (emptyState) {
+                    emptyState.style.display = visible === 0 ? '' : 'none';
+                }
+            };
+
+            const syncHistoricalChecklist = () => {
+                if (hasOldChecklist) {
+                    return;
+                }
+
+                const selectedGroup = groupSelect ? groupSelect.value : fallbackGroup;
+                historicalCheckboxes.forEach((checkbox) => {
+                    let groups = [];
+                    try {
+                        groups = JSON.parse(checkbox.dataset.historicalGroups || '[]');
+                    } catch (error) {
+                        groups = [];
+                    }
+                    checkbox.checked = selectedGroup ? groups.includes(selectedGroup) : false;
+                });
+            };
+
+            groupSelect?.addEventListener('change', () => {
+                syncContributionCards();
+                syncHistoricalChecklist();
+            });
+            syncContributionCards();
+            syncHistoricalChecklist();
+        })();
+    </script>
 </x-layouts.app>
