@@ -243,27 +243,59 @@
                     : 'Belum ada jadwal pada tanggal ini.';
 
                 selectedEventsEl.innerHTML = selectedEvents.length
-                    ? selectedEvents.map((event) => `
-                        <article class="schedule-item ${event.type === 'target' ? 'is-target' : ''}">
-                            <div class="schedule-item-head">
-                                <span class="badge ${event.type === 'target' ? 'accent' : 'warn'}">${escapeHtml(event.label || event.type)}</span>
-                                ${event.type !== 'target' && event.canDelete ? `
-                                    <form action="${escapeHtml(event.deleteUrl)}" method="POST" style="margin: 0;">
-                                        <input type="hidden" name="_token" value="${escapeHtml(csrfToken)}">
-                                        <input type="hidden" name="_method" value="DELETE">
-                                        <button type="submit" class="danger-link">Hapus</button>
-                                    </form>
+                    ? selectedEvents.map((event) => {
+                        const progress = Number(event.progress || 0);
+                        const statusClass = {
+                            'selesai': 'ok',
+                            'terlambat': 'err',
+                            'proses': 'warn',
+                            'belum mulai': 'violet',
+                        }[event.status] || 'violet';
+
+                        return `
+                            <article class="group-row calendar-event-row">
+                                <div class="row-top">
+                                    <div>
+                                        <span class="badge ${event.type === 'target' ? 'accent' : 'warn'}">${escapeHtml(event.label || event.type)}</span>
+                                        ${event.endDate && event.endDate !== event.date ? `<span class="badge" style="margin-left: 6px;">${formatDate(event.date, { day: 'numeric', month: 'short' })} - ${formatDate(event.endDate)}</span>` : ''}
+                                        <h3 style="margin: 10px 0 0; font-size: 18px; font-weight: 650;">${escapeHtml(event.title)}</h3>
+                                        ${event.description ? `<p class="page-subtitle">${escapeHtml(event.description)}</p>` : ''}
+                                        ${event.note ? `<p class="page-subtitle">${escapeHtml(event.note)}</p>` : ''}
+                                        ${event.scopeLabel ? `<p class="row-subtitle">${escapeHtml(event.scopeLabel)}</p>` : ''}
+                                    </div>
+                                    <div class="calendar-event-actions">
+                                        ${event.status ? `<span class="badge ${statusClass}">${escapeHtml(event.status)}</span>` : ''}
+                                        ${event.type !== 'target' && event.canDelete ? `
+                                            <form action="${escapeHtml(event.deleteUrl)}" method="POST" style="margin: 0;">
+                                                <input type="hidden" name="_token" value="${escapeHtml(csrfToken)}">
+                                                <input type="hidden" name="_method" value="DELETE">
+                                                <button type="submit" class="danger-link">Hapus</button>
+                                            </form>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                                ${event.type === 'target' ? `
+                                    <div class="target-checklist-form">
+                                        <div class="target-progress-head">
+                                            <span>${progress}% selesai</span>
+                                            <span class="mono">${progress}%</span>
+                                        </div>
+                                        <div class="progress-line"><span style="width: ${progress}%"></span></div>
+                                    </div>
                                 ` : ''}
-                            </div>
-                            <h4>${escapeHtml(event.title)}</h4>
-                            ${event.scopeLabel ? `<p>${escapeHtml(event.scopeLabel)}</p>` : ''}
-                            ${event.status ? `<p>Status: ${escapeHtml(event.status)}${event.progress ? ` (${event.progress}%)` : ''}</p>` : ''}
-                            ${event.endDate && event.endDate !== event.date ? `<p>${formatDate(event.date, { day: 'numeric', month: 'short' })} - ${formatDate(event.endDate)}</p>` : ''}
-                            ${event.description ? `<p>${escapeHtml(event.description)}</p>` : ''}
-                            ${event.note ? `<p>${escapeHtml(event.note)}</p>` : ''}
-                            ${event.items?.length ? `<ul>${event.items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>` : ''}
-                        </article>
-                    `).join('')
+                                ${event.items?.length ? `
+                                    <div class="form-grid calendar-checklist" style="gap: 8px; margin-top: 12px;">
+                                        ${event.items.map((item) => `
+                                            <div class="check-card target-check-card">
+                                                <span class="check-box"></span>
+                                                <span>${escapeHtml(item)}</span>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                ` : ''}
+                            </article>
+                        `;
+                    }).join('')
                     : '<p class="empty-state">Gunakan form di kanan untuk menambahkan jadwal penting atau target pribadi.</p>';
             }
 
