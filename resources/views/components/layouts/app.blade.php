@@ -20,6 +20,7 @@
             $items = [
                 ['route' => 'dashboard', 'match' => 'dashboard', 'label' => 'Dashboard', 'icon' => 'M3 11 12 4l9 7 M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9'],
                 ['route' => 'targets.index', 'match' => 'targets.*', 'label' => 'Targets', 'icon' => 'M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16 M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M12 12h.01'],
+                ['route' => 'calendar.index', 'match' => 'calendar.*', 'label' => 'Kalender', 'icon' => 'M7 3v3 M17 3v3 M4 8h16 M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z M8 12h.01 M12 12h.01 M16 12h.01 M8 16h.01 M12 16h.01'],
                 ['route' => 'journals.index', 'match' => 'journals.*', 'label' => 'Journal', 'icon' => 'M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4Z M5 17a3 3 0 0 1 3-3h10'],
                 ['route' => 'feedback.index', 'match' => 'feedback.*', 'label' => 'Feedback', 'icon' => 'M4 5h16v11H9l-5 4V5Z'],
             ];

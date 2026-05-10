@@ -108,6 +108,73 @@ class TargetController extends Controller
         ]);
     }
 
+    public function calendar(FirebaseService $firebase): View
+    {
+        $user = current_user();
+        $scope = $this->progressScope();
+        $progressByTarget = collect($firebase->all('target_progress'))
+            ->where('scope_key', $scope['key'])
+            ->keyBy('target_id');
+        $journals = collect($firebase->all('journals'));
+
+        if ($scope['type'] === 'group') {
+            $journals = $journals->where('group_id', $user->group_id);
+        } else {
+            $journals = $journals->where('created_by', (string) $user->id);
+        }
+
+        $targets = collect($firebase->all('targets'))
+            ->map(function ($target) use ($progressByTarget, $journals) {
+                $progress = $progressByTarget->get($target['id'], []);
+                $totalItems = count($target['checklist_items'] ?? []);
+                $savedCheckedItems = collect($progress['checked_items'] ?? [])
+                    ->filter()
+                    ->keys()
+                    ->map(fn ($index) => (string) $index)
+                    ->values()
+                    ->all();
+                $journalCheckedItems = $this->journalCheckedItems($target, $journals);
+                $checkedItems = collect([...$savedCheckedItems, ...$journalCheckedItems])
+                    ->unique()
+                    ->sort()
+                    ->values()
+                    ->all();
+                $completedCount = count($checkedItems);
+
+                return [
+                    ...$target,
+                    'checked_items' => $checkedItems,
+                    'completed_count' => $completedCount,
+                    'total_count' => $totalItems,
+                    'progress_percent' => $totalItems > 0 ? (int) round(($completedCount / $totalItems) * 100) : 0,
+                    'computed_status' => $this->computedStatus($target, $checkedItems),
+                ];
+            })
+            ->sortBy(function ($target) {
+                return $target['target_date']
+                    ?? $target['week_start']
+                    ?? $target['created_at']
+                    ?? '9999-12-31';
+            })
+            ->values();
+
+        $visibleScheduleScopes = $this->visibleScheduleScopeKeys();
+        $schedules = collect($firebase->all('schedules'))
+            ->filter(fn ($schedule) => in_array($schedule['scope_key'] ?? '', $visibleScheduleScopes, true))
+            ->map(fn ($schedule) => [
+                ...$schedule,
+                'can_delete' => $this->canDeleteSchedule($schedule),
+                'scope_label' => ($schedule['scope_type'] ?? '') === 'global' ? 'Semua akun' : 'Pribadi',
+            ])
+            ->sortBy('date')
+            ->values();
+
+        return view('calendar.index', [
+            'targets' => $targets,
+            'schedules' => $schedules,
+        ]);
+    }
+
     public function store(Request $request, FirebaseService $firebase): RedirectResponse
     {
         abort_unless(current_user()->isTeacher(), 403);

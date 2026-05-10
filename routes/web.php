@@ -35,6 +35,8 @@ Route::middleware('current_user')->group(function (): void {
 
     Route::resource('targets', TargetController::class)
         ->only(['index', 'store', 'destroy']);
+    Route::get('calendar', [TargetController::class, 'calendar'])
+        ->name('calendar.index');
     Route::post('targets/{target}/checklist', [TargetController::class, 'updateChecklist'])
         ->name('targets.checklist');
     Route::post('targets/{target}/archive', [TargetController::class, 'archive'])
