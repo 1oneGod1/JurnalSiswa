@@ -27,6 +27,7 @@ Route::middleware('current_user')->group(function (): void {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 
     Route::get('groups', [GroupController::class, 'index'])->name('groups.index');
+    Route::get('groups/{group}', [GroupController::class, 'show'])->name('groups.show');
     Route::post('groups', [GroupController::class, 'store'])->name('groups.store');
     Route::delete('groups/{group}', [GroupController::class, 'destroy'])->name('groups.destroy');
     Route::post('groups/{group}/students', [GroupController::class, 'storeStudent'])->name('groups.students.store');
@@ -34,11 +35,21 @@ Route::middleware('current_user')->group(function (): void {
 
     Route::resource('targets', TargetController::class)
         ->only(['index', 'store', 'destroy']);
+    Route::post('targets/{target}/checklist', [TargetController::class, 'updateChecklist'])
+        ->name('targets.checklist');
     Route::post('targets/{target}/archive', [TargetController::class, 'archive'])
         ->name('targets.archive');
+    Route::post('target-schedules', [TargetController::class, 'storeSchedule'])
+        ->name('targets.schedules.store');
+    Route::delete('target-schedules/{schedule}', [TargetController::class, 'destroySchedule'])
+        ->name('targets.schedules.destroy');
 
     Route::resource('journals', JournalController::class)
         ->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
+    Route::post('journals/{journal}/comments', [JournalController::class, 'storeComment'])
+        ->name('journals.comments.store');
+    Route::delete('journal-comments/{comment}', [JournalController::class, 'destroyComment'])
+        ->name('journals.comments.destroy');
 
     Route::get('documentations/{documentation}', [DocumentationController::class, 'show'])
         ->name('documentations.show');

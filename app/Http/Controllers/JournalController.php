@@ -95,6 +95,7 @@ class JournalController extends Controller
             'targets' => collect($firebase->all('targets'))->keyBy('id'),
             'documentations' => collect($firebase->all('documentations'))->where('journal_id', $journal)->values(),
             'feedbacks' => collect($firebase->all('feedbacks'))->where('journal_id', $journal)->sortByDesc('created_at')->values(),
+            'comments' => collect($firebase->all('journal_comments'))->where('journal_id', $journal)->sortBy('created_at')->values(),
         ]);
     }
 
@@ -179,6 +180,12 @@ class JournalController extends Controller
                 }
             }
 
+            foreach (collect($firebase->all('journal_comments'))->where('journal_id', $journal) as $comment) {
+                if (! empty($comment['id'])) {
+                    $firebase->delete('journal_comments', $comment['id']);
+                }
+            }
+
             $firebase->delete('journals', $journal);
         } catch (Throwable $e) {
             Log::error('Gagal hapus jurnal', ['journal_id' => $journal, 'message' => $e->getMessage()]);
@@ -189,6 +196,54 @@ class JournalController extends Controller
         return redirect()
             ->route('journals.index')
             ->with('status', 'Jurnal dihapus.');
+    }
+
+    public function storeComment(string $journal, Request $request, FirebaseService $firebase): RedirectResponse
+    {
+        $record = $firebase->find('journals', $journal);
+        abort_if(! $record, 404);
+        $this->authorizeJournal($record);
+
+        $validated = $request->validate([
+            'message' => ['required', 'string', 'max:1000'],
+        ]);
+
+        try {
+            $firebase->push('journal_comments', [
+                'journal_id' => $journal,
+                'group_id' => $record['group_id'] ?? null,
+                'message' => $validated['message'],
+                'created_by' => (string) current_user()->id,
+                'created_by_name' => current_user()->name,
+                'created_by_role' => current_user()->role,
+            ]);
+        } catch (Throwable $e) {
+            return back()
+                ->withInput()
+                ->withErrors(['message' => 'Gagal menyimpan komentar: '.$e->getMessage()]);
+        }
+
+        return back()->with('status', 'Komentar diskusi ditambahkan.');
+    }
+
+    public function destroyComment(string $comment, FirebaseService $firebase): RedirectResponse
+    {
+        $record = $firebase->find('journal_comments', $comment);
+        abort_if(! $record, 404);
+
+        $journal = $firebase->find('journals', $record['journal_id'] ?? '');
+        abort_if(! $journal, 404);
+        $this->authorizeJournal($journal);
+
+        abort_unless(current_user()->isTeacher() || ($record['created_by'] ?? null) === (string) current_user()->id, 403);
+
+        try {
+            $firebase->delete('journal_comments', $comment);
+        } catch (Throwable $e) {
+            return back()->withErrors(['comment' => 'Gagal menghapus komentar: '.$e->getMessage()]);
+        }
+
+        return back()->with('status', 'Komentar dihapus.');
     }
 
     private function authorizeJournal(array $journal): void

@@ -191,6 +191,45 @@
                     </form>
                 @endif
             </section>
+
+            <section class="card">
+                <div class="card-head">
+                    <div>
+                        <h2 class="card-title">Diskusi</h2>
+                        <p class="page-subtitle">Komentar singkat guru dan siswa untuk jurnal ini.</p>
+                    </div>
+                </div>
+                <div class="list-divide">
+                    @forelse ($comments as $comment)
+                        <div class="group-row">
+                            <div class="row-top">
+                                <div>
+                                    <h3 class="row-title">{{ $comment['created_by_name'] ?? 'Pengguna' }}</h3>
+                                    <p class="row-subtitle">{{ ucfirst($comment['created_by_role'] ?? '-') }} · {{ ! empty($comment['created_at']) ? \Carbon\Carbon::parse($comment['created_at'])->format('d M Y H:i') : '' }}</p>
+                                </div>
+                                @if (current_user()->isTeacher() || ($comment['created_by'] ?? null) === (string) current_user()->id)
+                                    <form action="{{ route('journals.comments.destroy', $comment['id']) }}" method="POST" onsubmit="return confirm('Hapus komentar ini?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button class="danger-link" type="submit">Hapus</button>
+                                    </form>
+                                @endif
+                            </div>
+                            <p style="margin: 10px 0 0; color: var(--ink-2); white-space: pre-line;">{{ $comment['message'] ?? '' }}</p>
+                        </div>
+                    @empty
+                        <p style="padding: 18px; color: var(--muted);">Belum ada komentar diskusi.</p>
+                    @endforelse
+                </div>
+                <form action="{{ route('journals.comments.store', $journal['id']) }}" method="POST" class="form-card" style="border-top: 1px solid var(--border);">
+                    @csrf
+                    <div class="field">
+                        <label for="message">Komentar</label>
+                        <textarea class="input" id="message" name="message" rows="3" required placeholder="Tulis komentar diskusi...">{{ old('message') }}</textarea>
+                    </div>
+                    <button type="submit" class="btn" style="width: 100%;">Kirim Komentar</button>
+                </form>
+            </section>
         </aside>
     </div>
 

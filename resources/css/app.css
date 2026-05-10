@@ -516,6 +516,25 @@ a {
     grid-template-columns: minmax(280px, .72fr) minmax(420px, 1fr) minmax(340px, .62fr);
 }
 
+.target-filter-bar {
+    display: grid;
+    grid-template-columns: minmax(150px, .7fr) minmax(140px, .6fr) minmax(180px, 1fr) auto;
+    gap: 12px;
+    align-items: end;
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--border);
+}
+
+.target-filter-bar .field {
+    margin-bottom: 0;
+}
+
+.target-filter-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
 .calendar-panel {
     display: grid;
     gap: 18px;
@@ -717,6 +736,66 @@ a {
     background: var(--surface-2);
     padding: 12px;
     font-size: 13px;
+}
+
+.target-checklist-form {
+    margin-top: 16px;
+}
+
+.target-progress-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+    color: var(--muted);
+    font-size: 12.5px;
+    font-weight: 650;
+}
+
+.target-check-card {
+    cursor: pointer;
+}
+
+.target-check-card input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.target-check-card.is-checked,
+.target-check-card:has(input:checked) {
+    background: var(--ok-soft);
+    border-color: #cce8d8;
+}
+
+.target-check-card input:checked + .check-box {
+    display: grid;
+    place-items: center;
+    border-color: var(--ok);
+    background: var(--ok);
+    color: #fff;
+}
+
+.target-check-card input:checked + .check-box::after {
+    content: "";
+    width: 9px;
+    height: 5px;
+    border-left: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(-45deg) translate(1px, -1px);
+}
+
+.target-check-card input:checked + .check-box svg {
+    display: none;
+}
+
+.target-check-card:has(input:disabled) {
+    cursor: default;
+}
+
+.target-save-btn {
+    margin-top: 12px;
 }
 
 .check-box {
@@ -995,6 +1074,7 @@ a {
     .metric-grid,
     .grid-2,
     .grid-3,
+    .target-filter-bar,
     .split-grid,
     .target-grid,
     .target-grid-teacher {

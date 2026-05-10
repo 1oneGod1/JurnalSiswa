@@ -85,6 +85,9 @@
                                 Jurnal terbaru: {{ $summary['latest_journal']['progress_today'] ?? 'Catatan belum lengkap' }}
                             </a>
                         @endif
+                        <a href="{{ route('groups.show', $summary['group']['id']) }}" class="soft-link">
+                            Lihat profil kelompok
+                        </a>
                     </div>
                 @empty
                     <p style="padding: 18px; color: var(--muted);">Belum ada kelompok.</p>

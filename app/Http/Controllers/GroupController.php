@@ -30,6 +30,63 @@ class GroupController extends Controller
         ]);
     }
 
+    public function show(string $group, FirebaseService $firebase): View
+    {
+        $user = current_user();
+        abort_if($user->isStudent() && $user->group_id !== $group, 403);
+
+        $record = $firebase->find('groups', $group);
+        abort_if(! $record, 404);
+
+        $targets = collect($firebase->all('targets'))->where('status', 'active')->values();
+        $journals = collect($firebase->all('journals'))
+            ->where('group_id', $group)
+            ->sortByDesc(fn ($journal) => sprintf('%03d-%s-%s', (int) ($journal['meeting_no'] ?? 0), $journal['journal_date'] ?? '', $journal['created_at'] ?? ''))
+            ->values();
+        $feedbacks = collect($firebase->all('feedbacks'))->where('group_id', $group)->sortByDesc('created_at')->values();
+        $documentations = collect($firebase->all('documentations'))->where('group_id', $group)->values();
+        $members = collect($firebase->all('students'))->where('group_id', $group)->sortBy('name')->values();
+
+        $targetProgress = $targets->map(function ($target) use ($journals) {
+            $items = $target['checklist_items'] ?? [];
+            $totalItems = count($items);
+            $checked = $journals
+                ->map(fn ($journal) => data_get($journal, 'target_checklist.'.($target['id'] ?? '')))
+                ->filter()
+                ->flatMap(function ($checked) use ($items) {
+                    if ($checked === true || $checked === 1 || $checked === '1' || filter_var($checked['completed'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+                        return array_keys($items);
+                    }
+
+                    return is_array($checked) ? collect($checked['items'] ?? [])->keys()->all() : [];
+                })
+                ->unique()
+                ->count();
+
+            return [
+                'target' => $target,
+                'checked' => min($checked, $totalItems),
+                'total' => $totalItems,
+                'complete' => $totalItems > 0 && $checked >= $totalItems,
+            ];
+        })->values();
+        $checkedTargets = $targetProgress->where('complete', true)->count();
+        $totalChecklistItems = max((int) $targetProgress->sum('total'), 1);
+        $progress = (int) round(($targetProgress->sum('checked') / $totalChecklistItems) * 100);
+
+        return view('groups.show', [
+            'group' => $record,
+            'members' => $members,
+            'journals' => $journals,
+            'targets' => $targets,
+            'feedbacks' => $feedbacks,
+            'documentations' => $documentations,
+            'progress' => $progress,
+            'checkedTargets' => $checkedTargets,
+            'targetProgress' => $targetProgress,
+        ]);
+    }
+
     public function store(Request $request, FirebaseService $firebase): RedirectResponse
     {
         abort_unless(current_user()?->isTeacher(), 403);

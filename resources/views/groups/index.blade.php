@@ -40,12 +40,17 @@
                     <div style="display: flex; justify-content: space-between; align-items: start; gap: 12px;">
                         <div>
                             <div class="row-subtitle">Kelompok {{ $group['number'] ?? '' }}</div>
-                            <h3 class="serif" style="margin: 4px 0 0; font-size: 20px;">{{ $group['name'] ?? '' }}</h3>
+                            <h3 class="serif" style="margin: 4px 0 0; font-size: 20px;">
+                                <a href="{{ route('groups.show', $group['id']) }}">{{ $group['name'] ?? '' }}</a>
+                            </h3>
                         </div>
-                        <form action="{{ route('groups.destroy', $group['id']) }}" method="POST" onsubmit="return confirm('Hapus kelompok ini?');">
-                            @csrf @method('DELETE')
-                            <button class="btn btn-ghost" type="submit" style="padding: 6px 10px; font-size: 12px;">Hapus</button>
-                        </form>
+                        <div style="display: flex; gap: 8px;">
+                            <a class="btn secondary" href="{{ route('groups.show', $group['id']) }}" style="padding: 6px 10px; font-size: 12px;">Profil</a>
+                            <form action="{{ route('groups.destroy', $group['id']) }}" method="POST" onsubmit="return confirm('Hapus kelompok ini?');">
+                                @csrf @method('DELETE')
+                                <button class="btn btn-ghost" type="submit" style="padding: 6px 10px; font-size: 12px;">Hapus</button>
+                            </form>
+                        </div>
                     </div>
 
                     <div style="margin-top: 16px;">

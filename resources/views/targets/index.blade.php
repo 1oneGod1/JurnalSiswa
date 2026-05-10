@@ -26,9 +26,27 @@
                         : 'Pertemuan '.($target['meeting_no'] ?? '-'),
                     'description' => $target['description'] ?? null,
                     'items' => $target['checklist_items'] ?? [],
+                    'status' => $target['computed_status'] ?? ($target['status'] ?? 'active'),
+                    'progress' => $target['progress_percent'] ?? 0,
                 ];
             })
             ->filter()
+            ->values();
+
+        $scheduleEvents = $schedules
+            ->map(fn ($schedule) => [
+                'id' => $schedule['id'],
+                'title' => $schedule['title'] ?? 'Jadwal penting',
+                'date' => $schedule['date'] ?? null,
+                'endDate' => $schedule['date'] ?? null,
+                'type' => $schedule['type'] ?? 'penting',
+                'label' => ($schedule['type'] ?? 'penting') === 'target-pribadi' ? 'Target pribadi' : 'Jadwal penting',
+                'note' => $schedule['note'] ?? null,
+                'deleteUrl' => route('targets.schedules.destroy', $schedule['id']),
+                'canDelete' => (bool) ($schedule['can_delete'] ?? false),
+                'scopeLabel' => $schedule['scope_label'] ?? 'Pribadi',
+            ])
+            ->filter(fn ($schedule) => ! empty($schedule['date']))
             ->values();
     @endphp
 
@@ -98,11 +116,50 @@
 
         <section class="card">
             <div class="card-head">
-                <h2 class="card-title">Daftar target</h2>
+                <div>
+                    <h2 class="card-title">Daftar target</h2>
+                    <p class="page-subtitle">{{ $targets->count() }} dari {{ $targetCounts['all'] ?? $targets->count() }} target ditampilkan.</p>
+                </div>
             </div>
+            <form action="{{ route('targets.index') }}" method="GET" class="target-filter-bar">
+                <div class="field">
+                    <label for="status">Status</label>
+                    <select class="input" id="status" name="status">
+                        @foreach (['all' => 'Semua', 'belum mulai' => 'Belum mulai', 'proses' => 'Proses', 'selesai' => 'Selesai', 'terlambat' => 'Terlambat'] as $value => $label)
+                            <option value="{{ $value }}" @selected(($filters['status'] ?? 'all') === $value)>{{ $label }} @if(isset($targetCounts[$value])) ({{ $targetCounts[$value] }}) @endif</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="mode_filter">Tipe</label>
+                    <select class="input" id="mode_filter" name="mode">
+                        <option value="all" @selected(($filters['mode'] ?? 'all') === 'all')>Semua tipe</option>
+                        <option value="pertemuan" @selected(($filters['mode'] ?? 'all') === 'pertemuan')>Pertemuan</option>
+                        <option value="mingguan" @selected(($filters['mode'] ?? 'all') === 'mingguan')>Mingguan</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="q">Cari</label>
+                    <input class="input" id="q" name="q" value="{{ $filters['q'] ?? '' }}" placeholder="Judul atau deskripsi">
+                </div>
+                <div class="target-filter-actions">
+                    <button class="btn secondary" type="submit">Terapkan</button>
+                    <a class="btn ghost" href="{{ route('targets.index') }}">Reset</a>
+                </div>
+            </form>
             <div class="list-divide">
                 @forelse ($targets as $target)
                     <article class="group-row">
+                        @php
+                            $computedStatus = $target['computed_status'] ?? ($target['status'] ?? 'active');
+                            $statusClass = match ($computedStatus) {
+                                'selesai' => 'ok',
+                                'terlambat' => 'err',
+                                'proses' => 'warn',
+                                'diarsipkan' => '',
+                                default => 'violet',
+                            };
+                        @endphp
                         <div class="row-top">
                             <div>
                                 @if (($target['mode'] ?? 'pertemuan') === 'mingguan')
@@ -121,18 +178,41 @@
                                     <p class="page-subtitle">{{ $target['description'] }}</p>
                                 @endif
                             </div>
-                            <span class="badge {{ ($target['status'] ?? 'active') === 'active' ? 'ok' : '' }}">{{ $target['status'] ?? 'active' }}</span>
+                            <span class="badge {{ $statusClass }}">{{ $computedStatus }}</span>
                         </div>
 
                         @if (! empty($target['checklist_items']))
-                            <div class="form-grid" style="gap: 8px; margin-top: 16px;">
-                                @foreach ($target['checklist_items'] as $item)
-                                    <div class="check-card">
-                                        <span class="check-box"></span>
-                                        <span>{{ $item }}</span>
-                                    </div>
-                                @endforeach
-                            </div>
+                            <form action="{{ route('targets.checklist', $target['id']) }}" method="POST" class="target-checklist-form">
+                                @csrf
+                                <div class="target-progress-head">
+                                    <span>{{ $target['completed_count'] ?? 0 }} dari {{ $target['total_count'] ?? count($target['checklist_items']) }} selesai</span>
+                                    <span class="mono">{{ $target['progress_percent'] ?? 0 }}%</span>
+                                </div>
+                                <div class="progress-line"><span style="width: {{ $target['progress_percent'] ?? 0 }}%"></span></div>
+                                <div class="form-grid" style="gap: 8px; margin-top: 12px;">
+                                    @foreach ($target['checklist_items'] as $index => $item)
+                                        @php $isChecked = in_array((string) $index, $target['checked_items'] ?? [], true); @endphp
+                                        <label class="check-card target-check-card {{ $isChecked ? 'is-checked' : '' }}">
+                                            <input
+                                                type="checkbox"
+                                                name="checklist[]"
+                                                value="{{ $index }}"
+                                                {{ $isChecked ? 'checked' : '' }}
+                                                {{ current_user()->isTeacher() ? 'disabled' : '' }}
+                                            >
+                                            <span class="check-box {{ $isChecked ? 'done' : '' }}">
+                                                @if ($isChecked)
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"></path></svg>
+                                                @endif
+                                            </span>
+                                            <span>{{ $item }}</span>
+                                        </label>
+                                    @endforeach
+                                </div>
+                                @if (current_user()->isStudent())
+                                    <button type="submit" class="btn secondary target-save-btn">Simpan Checklist</button>
+                                @endif
+                            </form>
                         @endif
 
                         @if (current_user()->isTeacher())
@@ -205,9 +285,13 @@
 
             <section class="card">
                 <div class="card-head">
-                    <h2 class="card-title">Tambah jadwal penting</h2>
+                    <div>
+                        <h2 class="card-title">Tambah jadwal penting</h2>
+                        <p class="page-subtitle">{{ current_user()->isTeacher() ? 'Jadwal dari guru tampil di seluruh akun.' : 'Jadwal siswa tersimpan sebagai catatan pribadi.' }}</p>
+                    </div>
                 </div>
-                <form id="schedule-form" class="calendar-wrap">
+                <form id="schedule-form" class="calendar-wrap" action="{{ route('targets.schedules.store') }}" method="POST">
+                    @csrf
                     <div class="field">
                         <label for="schedule_title">Judul jadwal</label>
                         <input class="input" id="schedule_title" name="title" placeholder="Contoh: Kumpul laporan akhir" required>
@@ -243,7 +327,8 @@
 
         (() => {
             const targetEvents = @json($targetEvents);
-            const storageKey = 'jurnalsiswa:schedule:{{ current_user()->id }}';
+            const scheduleEvents = @json($scheduleEvents);
+            const csrfToken = '{{ csrf_token() }}';
             const calendarEl = document.getElementById('target-calendar');
             const titleEl = document.getElementById('calendar-title');
             const selectedTitleEl = document.getElementById('selected-date-title');
@@ -256,18 +341,7 @@
                 return;
             }
 
-            const readSavedEvents = () => {
-                try {
-                    const parsed = JSON.parse(localStorage.getItem(storageKey) || '[]');
-
-                    return Array.isArray(parsed) ? parsed : [];
-                } catch (error) {
-                    return [];
-                }
-            };
-
-            let savedEvents = readSavedEvents();
-            const firstEventDate = [...targetEvents, ...savedEvents].find((event) => event.date)?.date;
+            const firstEventDate = [...targetEvents, ...scheduleEvents].find((event) => event.date)?.date;
             const today = new Date();
             let visibleMonth = firstEventDate ? new Date(`${firstEventDate}T00:00:00`) : new Date(today.getFullYear(), today.getMonth(), 1);
             let selectedDate = firstEventDate || toDateKey(today);
@@ -296,7 +370,7 @@
             }
 
             function allEvents() {
-                return [...targetEvents, ...savedEvents];
+                return [...targetEvents, ...scheduleEvents];
             }
 
             function eventsForDate(dateKey) {
@@ -357,9 +431,17 @@
                         <article class="schedule-item ${event.type === 'target' ? 'is-target' : ''}">
                             <div class="schedule-item-head">
                                 <span class="badge ${event.type === 'target' ? 'accent' : 'warn'}">${escapeHtml(event.label || event.type)}</span>
-                                ${event.type !== 'target' ? `<button type="button" class="danger-link" data-delete-schedule="${escapeHtml(event.id)}">Hapus</button>` : ''}
+                                ${event.type !== 'target' && event.canDelete ? `
+                                    <form action="${escapeHtml(event.deleteUrl)}" method="POST" style="margin: 0;">
+                                        <input type="hidden" name="_token" value="${escapeHtml(csrfToken)}">
+                                        <input type="hidden" name="_method" value="DELETE">
+                                        <button type="submit" class="danger-link">Hapus</button>
+                                    </form>
+                                ` : ''}
                             </div>
                             <h4>${escapeHtml(event.title)}</h4>
+                            ${event.scopeLabel ? `<p>${escapeHtml(event.scopeLabel)}</p>` : ''}
+                            ${event.status ? `<p>Status: ${escapeHtml(event.status)}${event.progress ? ` (${event.progress}%)` : ''}</p>` : ''}
                             ${event.endDate && event.endDate !== event.date ? `<p>${formatDate(event.date, { day: 'numeric', month: 'short' })} - ${formatDate(event.endDate)}</p>` : ''}
                             ${event.description ? `<p>${escapeHtml(event.description)}</p>` : ''}
                             ${event.note ? `<p>${escapeHtml(event.note)}</p>` : ''}
@@ -377,47 +459,6 @@
             document.querySelector('[data-calendar-next]').addEventListener('click', () => {
                 visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1);
                 renderCalendar();
-            });
-
-            selectedEventsEl.addEventListener('click', (event) => {
-                const deleteButton = event.target.closest('[data-delete-schedule]');
-
-                if (! deleteButton) {
-                    return;
-                }
-
-                savedEvents = savedEvents.filter((item) => item.id !== deleteButton.dataset.deleteSchedule);
-                localStorage.setItem(storageKey, JSON.stringify(savedEvents));
-                renderCalendar();
-                renderSelectedEvents();
-            });
-
-            scheduleForm.addEventListener('submit', (event) => {
-                event.preventDefault();
-                const formData = new FormData(scheduleForm);
-                const date = String(formData.get('date') || '');
-                const title = String(formData.get('title') || '').trim();
-
-                if (! date || ! title) {
-                    return;
-                }
-
-                savedEvents.push({
-                    id: `local-${Date.now()}`,
-                    title,
-                    date,
-                    endDate: date,
-                    type: String(formData.get('type') || 'penting'),
-                    label: formData.get('type') === 'target-pribadi' ? 'Target pribadi' : 'Jadwal penting',
-                    note: String(formData.get('note') || '').trim(),
-                });
-                localStorage.setItem(storageKey, JSON.stringify(savedEvents));
-                selectedDate = date;
-                visibleMonth = new Date(`${date}T00:00:00`);
-                scheduleForm.reset();
-                scheduleDate.value = selectedDate;
-                renderCalendar();
-                renderSelectedEvents();
             });
 
             renderCalendar();
