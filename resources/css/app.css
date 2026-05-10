@@ -505,6 +505,199 @@ a {
     gap: 18px;
 }
 
+.target-grid {
+    display: grid;
+    grid-template-columns: minmax(460px, .95fr) minmax(340px, .55fr);
+    align-items: start;
+    gap: 18px;
+}
+
+.target-grid-teacher {
+    grid-template-columns: minmax(280px, .72fr) minmax(420px, 1fr) minmax(340px, .62fr);
+}
+
+.calendar-panel {
+    display: grid;
+    gap: 18px;
+    position: sticky;
+    top: 82px;
+}
+
+.calendar-wrap {
+    padding: 16px 18px 18px;
+}
+
+.calendar-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.calendar-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 650;
+    text-align: center;
+    text-transform: capitalize;
+}
+
+.calendar-subtitle {
+    margin: 2px 0 0;
+    color: var(--muted);
+    font-size: 12px;
+    text-align: center;
+}
+
+.icon-btn {
+    width: 34px;
+    height: 34px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--surface);
+    color: var(--ink-2);
+    cursor: pointer;
+}
+
+.icon-btn:hover {
+    background: var(--surface-2);
+}
+
+.icon-btn svg {
+    width: 17px;
+    height: 17px;
+}
+
+.calendar-weekdays,
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.calendar-weekdays {
+    margin-bottom: 6px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 650;
+    text-align: center;
+}
+
+.calendar-day {
+    position: relative;
+    min-height: 46px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.calendar-day:hover {
+    background: var(--surface-2);
+}
+
+.calendar-day.is-muted {
+    color: var(--muted-2);
+}
+
+.calendar-day.is-today {
+    border-color: var(--border-strong);
+}
+
+.calendar-day.is-selected {
+    background: var(--ink);
+    color: #fff;
+}
+
+.calendar-day.has-event:not(.is-selected) {
+    background: var(--accent-soft);
+    color: var(--accent-ink);
+}
+
+.calendar-day small {
+    position: absolute;
+    right: 6px;
+    bottom: 5px;
+    min-width: 15px;
+    height: 15px;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.calendar-day.is-selected small {
+    background: #fff;
+    color: var(--ink);
+}
+
+.schedule-detail {
+    margin-top: 16px;
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+}
+
+.schedule-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.schedule-item {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface-2);
+    padding: 12px;
+}
+
+.schedule-item.is-target {
+    background: #f7faff;
+    border-color: #d7e3fd;
+}
+
+.schedule-item-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.schedule-item h4 {
+    margin: 9px 0 0;
+    font-size: 13.5px;
+    font-weight: 650;
+}
+
+.schedule-item p {
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-size: 12.5px;
+}
+
+.schedule-item ul {
+    margin: 8px 0 0;
+    padding-left: 18px;
+    color: var(--ink-2);
+    font-size: 12.5px;
+}
+
+.empty-state {
+    margin: 0;
+    border: 1px dashed var(--border-strong);
+    border-radius: 10px;
+    padding: 12px;
+    color: var(--muted);
+    font-size: 12.5px;
+}
+
 .entry-list-item {
     display: block;
     padding: 16px 18px;
@@ -744,6 +937,15 @@ a {
     .dashboard-grid {
         grid-template-columns: 1fr;
     }
+
+    .target-grid,
+    .target-grid-teacher {
+        grid-template-columns: 1fr;
+    }
+
+    .calendar-panel {
+        position: static;
+    }
 }
 
 @media (max-width: 800px) {
@@ -793,7 +995,9 @@ a {
     .metric-grid,
     .grid-2,
     .grid-3,
-    .split-grid {
+    .split-grid,
+    .target-grid,
+    .target-grid-teacher {
         grid-template-columns: 1fr;
     }
 
