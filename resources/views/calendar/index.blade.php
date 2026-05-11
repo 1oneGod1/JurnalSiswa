@@ -157,10 +157,9 @@
                 return;
             }
 
-            const firstEventDate = [...targetEvents, ...scheduleEvents].find((event) => event.date)?.date;
             const today = new Date();
-            let visibleMonth = firstEventDate ? new Date(`${firstEventDate}T00:00:00`) : new Date(today.getFullYear(), today.getMonth(), 1);
-            let selectedDate = firstEventDate || toDateKey(today);
+            let visibleMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+            let selectedDate = toDateKey(today);
 
             scheduleDate.value = selectedDate;
 
